@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { X, ExternalLink, Tv, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, ExternalLink, Tv, Loader2, ChevronLeft, ChevronRight, Maximize } from "lucide-react";
 import { Media } from "@/data/movies";
 import { saveProgress } from "@/data/watchlist";
 import { useCloudSync } from "@/hooks/useCloudSync";
@@ -70,6 +70,44 @@ const SOURCES: Source[] = [
   },
 ];
 
+type SourceStatus = "untried" | "checking" | "ok" | "failed";
+
+// How long a source gets to prove it actually loaded before we treat it as
+// dead and hop to the next one. Cross-origin embeds can't be inspected for
+// real errors, so a load timeout is the only reliable signal we have.
+const SOURCE_TIMEOUT_MS = 9000;
+
+function sourceStorageKey(tmdbId: number, isTV: boolean) {
+  return `energytv:lastSource:${isTV ? "tv" : "movie"}:${tmdbId}`;
+}
+
+// Figures out which source to try first: whatever last worked for this exact
+// title, falling back to whatever last worked for anything, falling back to
+// source 0.
+function getPreferredSourceIdx(tmdbId: number, isTV: boolean): number {
+  try {
+    const preferredId =
+      localStorage.getItem(sourceStorageKey(tmdbId, isTV)) ||
+      localStorage.getItem("energytv:lastSource:global");
+    if (preferredId) {
+      const idx = SOURCES.findIndex((s) => s.id === preferredId);
+      if (idx !== -1) return idx;
+    }
+  } catch {
+    // localStorage unavailable (private browsing, etc.) — just use default order
+  }
+  return 0;
+}
+
+function rememberWorkingSource(tmdbId: number, isTV: boolean, sourceId: string) {
+  try {
+    localStorage.setItem(sourceStorageKey(tmdbId, isTV), sourceId);
+    localStorage.setItem("energytv:lastSource:global", sourceId);
+  } catch {
+    // ignore write failures, this is just a nice-to-have
+  }
+}
+
 export default function PlayerModal({
   media,
   onClose,
@@ -82,12 +120,20 @@ export default function PlayerModal({
   const [season, setSeason] = useState(initialSeason ?? 1);
   const [episode, setEpisode] = useState(initialEpisode ?? 1);
   const [needsPicker, setNeedsPicker] = useState(isTV && initialEpisode === undefined);
-  const [sourceIdx, setSourceIdx] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [iframeKey, setIframeKey] = useState(0);
 
   const tmdbId = media.tmdbId || media.id;
   const totalSeasons = media.seasons ?? 1;
+
+  const [sourceIdx, setSourceIdx] = useState(() => getPreferredSourceIdx(tmdbId, isTV));
+  const [loading, setLoading] = useState(true);
+  const [iframeKey, setIframeKey] = useState(0);
+  const [sourceStatusMap, setSourceStatusMap] = useState<Record<number, SourceStatus>>({});
+  const [autoSwitchEnabled, setAutoSwitchEnabled] = useState(true);
+  const [allSourcesFailed, setAllSourcesFailed] = useState(false);
+
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const failedIndicesRef = useRef<Set<number>>(new Set());
 
   const activeSource = SOURCES[sourceIdx];
   const embedUrl = useMemo(
@@ -107,8 +153,57 @@ export default function PlayerModal({
     pushToCloud();
   }, [needsPicker]);
 
+  // Manually pick a source: gives it a clean slate (clears any prior "failed"
+  // mark) and re-enables auto-switching in case every source had previously
+  // timed out.
+  const switchSource = (idx: number) => {
+    failedIndicesRef.current.delete(idx);
+    setAllSourcesFailed(false);
+    setAutoSwitchEnabled(true);
+    setSourceIdx(idx);
+    setIframeKey((k) => k + 1);
+  };
+
+  // Walks forward from the source that just failed, wrapping around, and
+  // jumps to the next one we haven't already ruled out. Stops (and surfaces
+  // the "nothing worked" state) once every source has failed.
+  const advanceToNextSource = (fromIdx: number) => {
+    failedIndicesRef.current.add(fromIdx);
+    if (failedIndicesRef.current.size >= SOURCES.length) {
+      setAutoSwitchEnabled(false);
+      setAllSourcesFailed(true);
+      return;
+    }
+    for (let step = 1; step <= SOURCES.length; step++) {
+      const candidate = (fromIdx + step) % SOURCES.length;
+      if (!failedIndicesRef.current.has(candidate)) {
+        setSourceIdx(candidate);
+        setIframeKey((k) => k + 1);
+        return;
+      }
+    }
+  };
+
+  // Every time the embed URL changes (new source, new episode, etc.) this
+  // both resets the loading state and arms a timeout: if the iframe hasn't
+  // fired onLoad by then, the source is presumed dead and we auto-advance.
   useEffect(() => {
     setLoading(true);
+    setSourceStatusMap((prev) => ({ ...prev, [sourceIdx]: "checking" }));
+
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+    if (autoSwitchEnabled) {
+      timeoutRef.current = setTimeout(() => {
+        setSourceStatusMap((prev) => ({ ...prev, [sourceIdx]: "failed" }));
+        advanceToNextSource(sourceIdx);
+      }, SOURCE_TIMEOUT_MS);
+    }
+
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [embedUrl]);
 
   const startPlayback = (s?: number, e?: number) => {
@@ -121,9 +216,8 @@ export default function PlayerModal({
     window.open(embedUrl, "_blank", "noopener,noreferrer");
   };
 
-  const switchSource = (idx: number) => {
-    setSourceIdx(idx);
-    setIframeKey((k) => k + 1);
+  const requestPlayerFullscreen = () => {
+    iframeRef.current?.requestFullscreen?.();
   };
 
   // ─── Season / episode picker (TV shows opened without a specific episode) ───
@@ -204,6 +298,14 @@ export default function PlayerModal({
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button
+              onClick={requestPlayerFullscreen}
+              title="Fullscreen"
+              className="p-2 rounded-xl text-white/60 hover:text-white transition-all"
+              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
+            >
+              <Maximize className="w-4 h-4" />
+            </button>
+            <button
               onClick={openInNewTab}
               title="Open in new tab"
               className="p-2 rounded-xl text-white/60 hover:text-white transition-all"
@@ -228,28 +330,40 @@ export default function PlayerModal({
           style={{ background: "rgba(255,255,255,0.015)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
         >
           <span className="text-[10px] font-black uppercase tracking-widest text-white/35 shrink-0 mr-1">Source</span>
-          {SOURCES.map((s, idx) => (
-            <button
-              key={s.id}
-              onClick={() => switchSource(idx)}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0"
-              style={
-                idx === sourceIdx
-                  ? {
-                      background: "linear-gradient(135deg,hsl(112,100%,54%),hsl(112,100%,40%))",
-                      color: "#000",
-                      boxShadow: "0 0 10px rgba(57,255,20,0.35)",
-                    }
-                  : {
-                      background: "rgba(255,255,255,0.05)",
-                      color: "rgba(255,255,255,0.55)",
-                      border: "1px solid rgba(255,255,255,0.07)",
-                    }
-              }
-            >
-              {s.label}
-            </button>
-          ))}
+          {SOURCES.map((s, idx) => {
+            const status = sourceStatusMap[idx] ?? "untried";
+            const dotColor =
+              status === "ok" ? "#39ff14" : status === "failed" ? "#ff4444" : status === "checking" ? "#ffcc00" : "rgba(255,255,255,0.25)";
+            return (
+              <button
+                key={s.id}
+                onClick={() => switchSource(idx)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0"
+                style={
+                  idx === sourceIdx
+                    ? {
+                        background: "linear-gradient(135deg,hsl(112,100%,54%),hsl(112,100%,40%))",
+                        color: "#000",
+                        boxShadow: "0 0 10px rgba(57,255,20,0.35)",
+                      }
+                    : {
+                        background: "rgba(255,255,255,0.05)",
+                        color: "rgba(255,255,255,0.55)",
+                        border: "1px solid rgba(255,255,255,0.07)",
+                      }
+                }
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${status === "checking" ? "animate-pulse" : ""}`}
+                  style={{
+                    background: dotColor,
+                    boxShadow: status === "checking" ? "0 0 6px #ffcc00" : "none",
+                  }}
+                />
+                {s.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Episode nav (TV only) */}
@@ -282,21 +396,56 @@ export default function PlayerModal({
 
         {/* Player */}
         <div className="relative flex-1" style={{ aspectRatio: "16/9" }}>
-          {loading && (
+          {loading && !allSourcesFailed && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10" style={{ background: "#040508" }}>
               <Loader2 className="w-8 h-8 animate-spin" style={{ color: "hsl(112,100%,54%)" }} />
-              <p className="text-xs text-white/40">Loading {activeSource.label}…</p>
+              <p className="text-xs text-white/40">
+                {autoSwitchEnabled ? `Trying ${activeSource.label}…` : `Loading ${activeSource.label}…`}
+              </p>
+            </div>
+          )}
+          {allSourcesFailed && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10 px-6 text-center" style={{ background: "#040508" }}>
+              <p className="text-sm text-white/60">None of the sources loaded in time.</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => switchSource(sourceIdx)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-black"
+                  style={{ background: "linear-gradient(135deg,hsl(112,100%,54%),hsl(112,100%,40%))" }}
+                >
+                  Retry all sources
+                </button>
+                <button
+                  onClick={openInNewTab}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-white/70"
+                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)" }}
+                >
+                  Open in new tab
+                </button>
+              </div>
             </div>
           )}
           <iframe
             key={iframeKey}
+            ref={iframeRef}
             src={embedUrl}
             className="w-full h-full"
             style={{ border: "none" }}
             allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
             allowFullScreen
+            // No allow-popups / allow-top-navigation: this is what actually stops
+            // the embed from opening ad pop-ups or redirecting the whole tab.
+            // Fullscreen isn't gated by sandbox tokens (it's controlled by the
+            // `allow="fullscreen"` permissions policy above + allowFullScreen),
+            // so the player's own fullscreen button keeps working.
+            sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
             referrerPolicy="origin"
-            onLoad={() => setLoading(false)}
+            onLoad={() => {
+              if (timeoutRef.current) clearTimeout(timeoutRef.current);
+              setLoading(false);
+              setSourceStatusMap((prev) => ({ ...prev, [sourceIdx]: "ok" }));
+              rememberWorkingSource(tmdbId, isTV, activeSource.id);
+            }}
             title={`${media.title} player — ${activeSource.label}`}
           />
         </div>
@@ -304,8 +453,8 @@ export default function PlayerModal({
         {/* Footer hint */}
         <div className="px-4 py-2 text-center shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
           <p className="text-[10px] text-white/30">
-            Player not loading? Try another source above, or{" "}
-            <button onClick={openInNewTab} className="underline hover:text-white/60">open in a new tab</button>.
+            Player not loading? It'll auto-switch sources in {SOURCE_TIMEOUT_MS / 1000}s, or{" "}
+            <button onClick={openInNewTab} className="underline hover:text-white/60">open in a new tab</button> now.
           </p>
         </div>
       </div>
