@@ -26,7 +26,7 @@ const SOURCES: Source[] = [
     build: ({ id, isTV, season, episode }) =>
       isTV
         ? `https://vidlink.pro/embed/tv/${id}/${season}/${episode}`
-        : `https://vidlink.pro/embed/movie/${id}`,
+        : `https://vidlink.pro/movie/${id}`,
   },
   {
     id: "vidsrc.cc",
