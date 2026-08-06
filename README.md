@@ -2,7 +2,7 @@
 
 <img src="artifacts/energy-tv/public/pwa-512.svg" width="80" alt="EnergyTV logo" />
 
-# EnergyTV
+# NRGTV
 
 **Stream movies & TV shows for free**
 
