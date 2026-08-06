@@ -160,7 +160,7 @@ export default function Settings() {
             >
               <Zap className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(112,100%,54%)" }} />
               <p className="text-xs text-muted-foreground leading-relaxed">
-                EnergyTV is a web streaming interface. Content metadata is sourced from TMDB. Images © The Movie Database (TMDB).
+                NRGTV is a web streaming interface. Content metadata is sourced from TMDB. Images © The Movie Database (TMDB).
               </p>
             </div>
           </Section>
