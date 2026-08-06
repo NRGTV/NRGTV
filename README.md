@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="artifacts/energy-tv/public/pwa-512.svg" width="80" alt="EnergyTV logo" />
+<img src="artifacts/energy-tv/public/pwa-512.svg" width="80" alt="NRGTV logo" />
 
 # NRGTV
 
@@ -12,7 +12,7 @@ A homemade streaming service sourced from P2P websites — every movie, includin
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Android-39FF14?style=flat-square)](https://github.com/Xion97522/EnergyTV-2Beta/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-39FF14?style=flat-square)](LICENSE)
 
-<img src="artifacts/energy-tv/public/opengraph.jpg" width="720" alt="EnergyTV preview" style="border-radius:12px" />
+<img src="artifacts/energy-tv/public/opengraph.jpg" width="720" alt="NRGTV preview" style="border-radius:12px" />
 
 </div>
 
