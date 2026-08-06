@@ -95,7 +95,7 @@ export default function SignIn() {
           </div>
           <div>
             <h1 className="text-2xl font-black tracking-tight text-white">
-              Energy<span style={{ color: "hsl(112,100%,54%)" }}>TV</span>
+              NRG<span style={{ color: "hsl(112,100%,54%)" }}>TV</span>
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
               Stream with the world's most electrifying content
@@ -162,7 +162,7 @@ export default function SignIn() {
         <p className="text-[11px] text-muted-foreground leading-relaxed">
           By continuing you agree to our{" "}
           <span className="underline underline-offset-2 cursor-pointer" style={{ color: "hsl(112,100%,54%)" }}>Terms</span>
-          {" "}and{" "}
+          {" " }and{" "}
           <span className="underline underline-offset-2 cursor-pointer" style={{ color: "hsl(112,100%,54%)" }}>Privacy Policy</span>.
         </p>
       </div>
