@@ -1,4 +1,4 @@
-# Deploying EnergyTV to GitHub Pages
+# Deploying NRGTV to GitHub Pages
 
 This repo now includes `.github/workflows/deploy-pages.yml`, which builds the
 `artifacts/energy-tv` app and deploys it to GitHub Pages automatically.
