@@ -121,7 +121,3 @@ Add these in **Settings → Secrets → Actions**:
 | `VITE_SUPABASE_ANON_KEY` | Supabase anon key |
 
 ---
-
-## Built by
-
-**CrAzE / NELABEL** — [@crazemusicofficial](https://youtube.com/@crazemusicofficial)
