@@ -15,7 +15,7 @@ const port = rawPort ? Number(rawPort) : 5000;
 const basePath = process.env.BASE_PATH ?? "/";
 
 export default defineConfig({
-  base: basePath,
+  base: ''
   plugins: [
     react(),
     tailwindcss(),
