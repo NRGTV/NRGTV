@@ -162,7 +162,7 @@ export default function Navbar() {
               <Zap className="w-4 h-4 text-black fill-black" />
             </div>
             <span className="text-foreground font-black text-lg tracking-tight">
-              Energy<span style={{ color: "hsl(112,100%,54%)" }}>TV</span>
+              NRG<span style={{ color: "hsl(112,100%,54%)" }}>TV</span>
             </span>
           </div>
         </Link>
