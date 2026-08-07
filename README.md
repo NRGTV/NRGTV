@@ -7,7 +7,7 @@
 **Stream movies & TV shows for free**
 
 A homemade streaming service sourced from P2P websites — every movie, including those still in theaters. Features roll out almost daily.
-
+Support: info@nrgtv.space
 [![Download](https://img.shields.io/github/v/release/Xion97522/EnergyTV-2Beta?label=Download&color=39FF14&style=flat-square)](https://github.com/Xion97522/EnergyTV-2Beta/releases/latest)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Android-39FF14?style=flat-square)](https://github.com/Xion97522/EnergyTV-2Beta/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-39FF14?style=flat-square)](LICENSE)
