@@ -45,12 +45,10 @@ jobs:
       - name: Determine base path
         id: basepath
         run: |
-          REPO_NAME="${GITHUB_REPOSITORY#*/}"
-          if [ "${REPO_NAME}" = "${GITHUB_REPOSITORY_OWNER}.github.io" ]; then
-            echo "base=/" >> "$GITHUB_OUTPUT"
-          else
-            echo "base=/${REPO_NAME}/" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Determine base path
+        id: basepath
+        run: |
+          echo "base=/" >> "$GITHUB_OUTPUT"
 
       - name: Build energy-tv
         working-directory: artifacts/energy-tv
