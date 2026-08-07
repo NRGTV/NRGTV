@@ -433,12 +433,6 @@ export default function PlayerModal({
             style={{ border: "none" }}
             allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
             allowFullScreen
-            // No allow-popups / allow-top-navigation: this is what actually stops
-            // the embed from opening ad pop-ups or redirecting the whole tab.
-            // Fullscreen isn't gated by sandbox tokens (it's controlled by the
-            // `allow="fullscreen"` permissions policy above + allowFullScreen),
-            // so the player's own fullscreen button keeps working.
-            sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
             referrerPolicy="origin"
             onLoad={() => {
               if (timeoutRef.current) clearTimeout(timeoutRef.current);
