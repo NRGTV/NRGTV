@@ -26,7 +26,7 @@ A homemade streaming service sourced from P2P websites — every movie, includin
 | 🍎 macOS | `.dmg` · `.zip` | [Latest release →](https://github.com/Xion97522/EnergyTV-2Beta/releases/latest) |
 | 🪟 Windows | `.exe` installer · portable | [Latest release →](https://github.com/Xion97522/EnergyTV-2Beta/releases/latest) |
 | 🤖 Android | `APK` (sideload) | [Latest release →](https://github.com/Xion97522/EnergyTV-2Beta/releases/latest) |
-| 🌐 Web | PWA (no install) | [Open in browser →](https://xion97522.github.io/EnergyTV-2Beta/) |
+| 🌐 Web | PWA (no install) | [Open in browser →](https://nrgtv.space) |
 
 > **Android install:** Enable *Install unknown apps* in settings, then open the APK. Requires Android 7.0+.
 
