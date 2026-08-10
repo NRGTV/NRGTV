@@ -30,11 +30,3 @@ Support: info@nrgtv.space
 | 🌐 Web | PWA (no install) | [Open in browser →](https://nrgtv.space) |
 
 > **Android install:** Enable *Install unknown apps* in settings, then open the APK. Requires Android 7.0+.
-
----
-|---|---|
-| `VITE_TMDB_API_KEY` | TMDB API key |
-| `VITE_SUPABASE_URL` | Supabase project URL |
-| `VITE_SUPABASE_ANON_KEY` | Supabase anon key |
-
----
