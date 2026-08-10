@@ -22,7 +22,7 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       devOptions: { enabled: false },
-      includeAssets: ["pwa-192.svg", "pwa-512.svg", "apple-touch-icon.svg", "favicon.svg"],
+      includeAssets: ["pwa-192.png", "pwa-512.png", "pwa-maskable-512.png", "apple-touch-icon.png", "favicon.svg", "favicon.ico"],
       manifest: {
         name: "NRGTV",
         short_name: "NRGTV",
@@ -36,23 +36,23 @@ export default defineConfig({
         lang: "en",
         categories: ["entertainment"],
         icons: [
-          { src: "pwa-192.svg", sizes: "192x192", type: "image/svg+xml", purpose: "any" },
-          { src: "pwa-512.svg", sizes: "512x512", type: "image/svg+xml", purpose: "any" },
-          { src: "pwa-512.svg", sizes: "512x512", type: "image/svg+xml", purpose: "maskable" },
-          { src: "apple-touch-icon.svg", sizes: "180x180", type: "image/svg+xml" },
+          { src: "pwa-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "pwa-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          { src: "pwa-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+          { src: "apple-touch-icon.png", sizes: "180x180", type: "image/png" },
         ],
         screenshots: [
           {
-            src: "pwa-512.svg",
+            src: "pwa-512.png",
             sizes: "512x512",
-            type: "image/svg+xml",
+            type: "image/png",
             form_factor: "wide",
             label: "NRGTV home screen",
           },
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,svg,woff2,ttf}"],
+        globPatterns: ["**/*.{js,css,html,ico,svg,png,woff2,ttf}"],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/image\.tmdb\.org\/.*/i,
