@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="artifacts/energy-tv/public/pwa-512.svg" width="80" alt="NRGTV logo" />
+<img src="artifacts/energy-tv/public/pwa-512.png" width="80" alt="NRGTV logo" />
 
 # NRGTV
 
