@@ -10,6 +10,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const avatarRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLDivElement | null>(null);
   const { user, signOut } = useAuth();
 
   const navItems = [
@@ -137,6 +138,51 @@ export default function Navbar() {
     );
   };
 
+  // Keyboard / gamepad navigation for desktop nav
+  useEffect(() => {
+    let lastAction = 0;
+    function onAction(e: any) {
+      const now = Date.now();
+      if (now - lastAction < 120) return; // debounce rapid inputs
+      lastAction = now;
+
+      const action = e?.detail?.action;
+      if (!action) return;
+
+      // if mobile menu is open, ignore desktop nav moves
+      if (mobileOpen) return;
+
+      const container = navRef.current;
+      if (!container) return;
+      const items = Array.from(container.querySelectorAll<HTMLElement>("[data-focusable='true']"));
+      if (!items.length) return;
+
+      const active = document.activeElement as HTMLElement | null;
+      let idx = items.findIndex((it) => it === active);
+      if (idx === -1) {
+        // try to focus the active nav item (marked by .glass-nav-active) first
+        const activeByClass = container.querySelector<HTMLElement>(".glass-nav-active[data-focusable='true']");
+        if (activeByClass) idx = items.indexOf(activeByClass);
+      }
+
+      if (action === "navigate-right" || action === "navigate-down") {
+        const next = (idx + 1) % items.length;
+        items[next].focus();
+      } else if (action === "navigate-left" || action === "navigate-up") {
+        const prev = (idx - 1 + items.length) % items.length;
+        items[prev].focus();
+      } else if (action === "confirm") {
+        (document.activeElement as HTMLElement | null)?.click();
+      } else if (action === "back") {
+        setMobileOpen(false);
+        setAvatarMenuOpen(false);
+      }
+    }
+
+    window.addEventListener("gamepad-action", onAction as any);
+    return () => window.removeEventListener("gamepad-action", onAction as any);
+  }, [mobileOpen]);
+
   return (
     <>
       <nav
@@ -168,15 +214,20 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop nav */}
-        <div className="hidden md:flex items-center gap-1">
+        <div ref={navRef} className="hidden md:flex items-center gap-1">
           {navItems.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href}>
               <div
+                role="link"
+                tabIndex={0}
+                data-focusable="true"
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer select-none ${
                   isActive(href) ? "glass-nav-active" : "text-muted-foreground hover:text-foreground"
                 }`}
                 onMouseEnter={!isActive(href) ? navHoverIn : undefined}
                 onMouseLeave={!isActive(href) ? navHoverOut : undefined}
+                onFocus={(e) => { /* keep hover visuals for keyboard focus */ (e.currentTarget).style.background = "rgba(255,255,255,0.05)"; }}
+                onBlur={(e) => { (e.currentTarget).style.background = isActive(href) ? "" : ""; }}
               >
                 <Icon className="w-4 h-4" />
                 {label}
