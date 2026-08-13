@@ -4,6 +4,9 @@ import { Zap, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 
+// Consent/redirect URL configured via env so it can differ by environment
+const CONSENT_URL = (import.meta.env as any).VITE_OAUTH_CONSENT_URL ?? "https://nrgtv.space/oauth/consent";
+
 export default function SignIn() {
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
@@ -19,6 +22,30 @@ export default function SignIn() {
     if (!loading && user) navigate("/");
   }, [user, loading, navigate]);
 
+  // Handle OAuth redirect: finalize session when Supabase redirects back.
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        // Supabase v2: parse session from the URL when redirected back from provider
+        const { data, error: oauthError } = await supabase.auth.getSessionFromUrl();
+        if (oauthError) {
+          // Not necessarily fatal — ignore if no oauth params present in URL
+          // but surface error if it looks like an OAuth failure
+          if (oauthError.message && !/No auth session/.test(oauthError.message)) {
+            console.warn("OAuth callback error:", oauthError);
+          }
+        } else if (data?.session && mounted) {
+          // Session should now be stored by supabase client; navigate home
+          navigate("/");
+        }
+      } catch (e) {
+        // ignore
+      }
+    })();
+    return () => { mounted = false; };
+  }, [navigate]);
+
   const handleSubmit = async () => {
     setError("");
     setMessage("");
@@ -30,10 +57,48 @@ export default function SignIn() {
     } else {
       const { error } = await supabase.auth.signUp({ email, password });
       if (error) setError(error.message);
-      else setMessage("Check your email to confirm your account.");
+      else {
+        setMessage("Check your email to confirm your account.");
+
+        // Trigger existing Supabase verification workflow at preview authorization URL
+        // This endpoint is expected to exist and will send the verification email.
+        try {
+          // send a POST with the user's email to trigger the workflow
+          await fetch(CONSENT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
+        } catch (e) {
+          // Non-fatal — the normal Supabase email flow should still work; log for debugging
+          // console.warn("Failed to trigger external verification workflow:", e);
+        }
+      }
     }
 
     setBusy(false);
+  };
+
+  // OAuth sign-in -- uses the project-specific redirect/consent URL
+  const handleOAuth = async (provider: string) => {
+    setBusy(true);
+    setError("");
+    try {
+      // Supabase v2 method
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: provider as any,
+        options: {
+          redirectTo: CONSENT_URL,
+        },
+      });
+
+      if (error) setError(error.message);
+      // The browser will redirect to the provider; no further action needed here.
+    } catch (e: any) {
+      setError(e?.message ?? String(e));
+    } finally {
+      setBusy(false);
+    }
   };
 
   const inputStyle: React.CSSProperties = {
@@ -157,6 +222,26 @@ export default function SignIn() {
           {busy && <Loader2 className="w-4 h-4 animate-spin" />}
           {mode === "signin" ? "Sign In" : "Create Account"}
         </button>
+
+        {/* OAuth buttons */}
+        <div className="w-full flex flex-col gap-2">
+          <button
+            onClick={() => handleOAuth("google")}
+            disabled={busy}
+            className="w-full py-3 rounded-xl text-sm font-semibold"
+            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", color: "white" }}
+          >
+            Continue with Google
+          </button>
+          <button
+            onClick={() => handleOAuth("github")}
+            disabled={busy}
+            className="w-full py-3 rounded-xl text-sm font-semibold"
+            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", color: "white" }}
+          >
+            Continue with GitHub
+          </button>
+        </div>
 
         {/* Footer */}
         <p className="text-[11px] text-muted-foreground leading-relaxed">
