@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -51,6 +52,8 @@
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
   --app-font-sans: 'GreenEnergy', system-ui, -apple-system, sans-serif;
+  --console-font-retro: 'Press Start 2P', monospace;
+  --console-font-mono: 'Share Tech Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace;
   --radius: 0.75rem;
 
   /* Glass tint values */
@@ -60,6 +63,11 @@
   --glass-highlight: rgba(255, 255, 255, 0.09);
   --glass-shadow:    0 8px 40px rgba(0,0,0,0.55);
   --neon:            57, 255, 20;
+
+  /* Console-specific */
+  --console-accent: 57, 255, 20;
+  --crt-scanline: rgba(0,0,0,0.06);
+  --vignette: rgba(0,0,0,0.45);
 }
 
 @layer base {
@@ -69,6 +77,8 @@
     font-family: var(--app-font-sans);
     -webkit-font-smoothing: antialiased;
     background: #040508;
+    /* slightly larger base spacing for controller navigation */
+    --control-spacing: 12px;
   }
   ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -253,4 +263,117 @@ iframe {
 .card-hover-glow {
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
+}
+
+/* ─── Console / Gamepad theme additions ───────────────────────────── */
+
+/* Apply console fonts and retro headings */
+:root {
+  /* increase default UI scale to feel like a console dashboard */
+  --ui-scale: 1.06;
+}
+
+body {
+  font-family: var(--console-font-mono);
+  letter-spacing: 0.4px;
+  font-size: calc(14px * var(--ui-scale));
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: var(--console-font-retro);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.96);
+}
+
+/* CRT scanlines overlay for that console/TV look */
+body::before {
+  pointer-events: none;
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: linear-gradient(transparent 92%, var(--crt-scanline) 100%);
+  background-size: 100% 4px;
+  mix-blend-mode: overlay;
+  opacity: 0.55;
+  z-index: 9999;
+}
+
+/* subtle vignette */
+body::after {
+  pointer-events: none;
+  content: "";
+  position: fixed;
+  left: 0; right: 0; top: 0; bottom: 0;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, var(--vignette) 100%);
+  opacity: 0.6;
+  z-index: 9998;
+}
+
+/* Larger, console-feel nav items and controller-friendly focus */
+[role="link"], a[role="link"], a, button {
+  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+
+/* Make nav pills feel like console buttons */
+.glass-nav-active {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 24px rgba(var(--console-accent), 0.12), 0 0 20px rgba(var(--console-accent), 0.06);
+}
+
+/* Focus states — visible for gamepad/keyboard navigation */
+[data-focusable='true']:focus {
+  outline: none;
+  box-shadow: 0 0 0 6px rgba(var(--console-accent), 0.06), 0 0 18px rgba(var(--console-accent),0.08);
+  transform: translateY(-2px);
+}
+
+/* Console action button */
+.console-btn {
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(var(--console-accent),0.12), rgba(0,0,0,0.35));
+  border: 1px solid rgba(var(--console-accent),0.18);
+  color: #dfffbf;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.console-btn:hover { transform: translateY(-2px); }
+
+/* Controller hint (bottom-right) */
+.controller-hint {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(var(--console-accent),0.12);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  z-index: 10001;
+}
+
+/* Make cards look more like console tiles */
+.card-tile {
+  border-radius: 10px;
+  padding: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.24));
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+/* Make posters / images have a subtle bezel */
+.img-bezel {
+  box-shadow: 0 10px 30px rgba(0,0,0,0.7), 0 0 18px rgba(var(--console-accent), 0.04);
+  border: 1px solid rgba(255,255,255,0.03);
+  border-radius: 8px;
+}
+
+/* Reduce opacity of less-relevant UI for focus-first console navigation */
+.dim-when-blur { opacity: 0.7; transition: opacity 160ms ease; }
+.dim-when-blur.focused { opacity: 1; }
+
+/* small-screen adjustments */
+@media (max-width: 640px) {
+  body::before, body::after { display: none; }
+  body { --ui-scale: 1; }
 }
