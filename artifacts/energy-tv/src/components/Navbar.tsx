@@ -18,7 +18,7 @@ export default function Navbar() {
     { href: "/movies",    label: "Movies",    icon: Film },
     { href: "/tv",        label: "TV Shows",  icon: Tv },
     { href: "/watchlist", label: "Watchlist", icon: Bookmark },
-    { href: "/games",     label: "Games",     icon: Gamepad2 },
+    { href: "https://games.nrgtv.space",     label: "Games",     icon: Gamepad2 },
     { href: "/search",    label: "Search",    icon: Search },
   ];
 
@@ -215,25 +215,44 @@ export default function Navbar() {
 
         {/* Desktop nav */}
         <div ref={navRef} className="hidden md:flex items-center gap-1">
-          {navItems.map(({ href, label, icon: Icon }) => (
-            <Link key={href} href={href}>
-              <div
-                role="link"
-                tabIndex={0}
-                data-focusable="true"
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer select-none ${
-                  isActive(href) ? "glass-nav-active" : "text-muted-foreground hover:text-foreground"
-                }`}
-                onMouseEnter={!isActive(href) ? navHoverIn : undefined}
-                onMouseLeave={!isActive(href) ? navHoverOut : undefined}
-                onFocus={(e) => { /* keep hover visuals for keyboard focus */ (e.currentTarget).style.background = "rgba(255,255,255,0.05)"; }}
-                onBlur={(e) => { (e.currentTarget).style.background = isActive(href) ? "" : ""; }}
-              >
-                <Icon className="w-4 h-4" />
-                {label}
-              </div>
-            </Link>
-          ))}
+          {navItems.map(({ href, label, icon: Icon }) => {
+            const isExternal = href.startsWith("http");
+            const activeClass = isActive(href) ? "glass-nav-active" : "text-muted-foreground hover:text-foreground";
+
+            return isExternal ? (
+              <a key={href} href={href} target="_blank" rel="noopener noreferrer">
+                <div
+                  role="link"
+                  tabIndex={0}
+                  data-focusable="true"
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer select-none ${activeClass}`}
+                  onMouseEnter={!isActive(href) ? navHoverIn : undefined}
+                  onMouseLeave={!isActive(href) ? navHoverOut : undefined}
+                  onFocus={(e) => { /* keep hover visuals for keyboard focus */ (e.currentTarget).style.background = "rgba(255,255,255,0.05)"; }}
+                  onBlur={(e) => { (e.currentTarget).style.background = isActive(href) ? "" : ""; }}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                </div>
+              </a>
+            ) : (
+              <Link key={href} href={href}>
+                <div
+                  role="link"
+                  tabIndex={0}
+                  data-focusable="true"
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer select-none ${activeClass}`}
+                  onMouseEnter={!isActive(href) ? navHoverIn : undefined}
+                  onMouseLeave={!isActive(href) ? navHoverOut : undefined}
+                  onFocus={(e) => { /* keep hover visuals for keyboard focus */ (e.currentTarget).style.background = "rgba(255,255,255,0.05)"; }}
+                  onBlur={(e) => { (e.currentTarget).style.background = isActive(href) ? "" : ""; }}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                </div>
+              </Link>
+            );
+          })}
         </div>
 
         {/* Right controls */}
@@ -279,20 +298,33 @@ export default function Navbar() {
         >
           <div style={{ height: "1px", background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 40%, rgba(57,255,20,0.1) 60%, transparent 100%)" }} />
           <div className="flex flex-col gap-1.5 p-5">
-            {navItems.map(({ href, label, icon: Icon }) => (
-              <Link key={href} href={href}>
-                <div
-                  className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all cursor-pointer ${
-                    isActive(href) ? "glass-nav-active" : "text-muted-foreground"
-                  }`}
-                  style={!isActive(href) ? { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" } : {}}
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <Icon className="w-5 h-5" />
-                  {label}
-                </div>
-              </Link>
-            ))}
+            {navItems.map(({ href, label, icon: Icon }) => {
+              const isExternal = href.startsWith("http");
+
+              return isExternal ? (
+                <a key={href} href={href} target="_blank" rel="noopener noreferrer">
+                  <div
+                    className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all cursor-pointer text-muted-foreground`}
+                    style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <Icon className="w-5 h-5" />
+                    {label}
+                  </div>
+                </a>
+              ) : (
+                <Link key={href} href={href}>
+                  <div
+                    className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all cursor-pointer ${isActive(href) ? "glass-nav-active" : "text-muted-foreground"}`}
+                    style={!isActive(href) ? { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" } : {}}
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <Icon className="w-5 h-5" />
+                    {label}
+                  </div>
+                </Link>
+              );
+            })}
 
             <Link href="/settings">
               <div
