@@ -49,12 +49,6 @@ const windowsGames: GameEntry[] = [
 
 const androidGames: GameEntry[] = [
   {
-    id: "android",
-    title: "Android APK",
-    blurb: "Sideloadable Android build — requires Android 7.0+. Enable 'Install unknown apps' in settings.",
-    url: "https://github.com/Xion97522/EnergyTV-2Beta/releases/latest",
-  },
-  {
     id: "minecraft",
     title: "Minecraft: Pocket Edition",
     blurb: "Minecraft PE (APK) — download from APKVision.",
