@@ -1,4 +1,4 @@
-import { Gamepad2, ExternalLink, Monitor } from "lucide-react";
+import { Gamepad2, ExternalLink, Monitor, Smartphone } from "lucide-react";
 
 interface GameEntry {
   id: string;
@@ -44,6 +44,15 @@ const windowsGames: GameEntry[] = [
     title: "Path of Exile",
     blurb: "Free-to-play action RPG on Steam.",
     url: "https://store.steampowered.com/app/238960/Path_of_Exile/",
+  },
+];
+
+const androidGames: GameEntry[] = [
+  {
+    id: "android",
+    title: "Android APK",
+    blurb: "Sideloadable Android build — requires Android 7.0+. Enable 'Install unknown apps' in settings.",
+    url: "https://github.com/Xion97522/EnergyTV-2Beta/releases/latest",
   },
 ];
 
@@ -121,6 +130,25 @@ export default function Games() {
           {windowsGames.map((game) => (
             <GameCard key={game.id} game={game} />
           ))}
+        </div>
+
+        {/* Android section */}
+        <div className="mt-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Smartphone className="w-3.5 h-3.5 text-muted-foreground/50" />
+            <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground/50">
+              Android
+            </h2>
+          </div>
+
+          <div
+            className="grid gap-4"
+            style={{ gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))" }}
+          >
+            {androidGames.map((game) => (
+              <GameCard key={game.id} game={game} />
+            ))}
+          </div>
         </div>
       </div>
     </div>
