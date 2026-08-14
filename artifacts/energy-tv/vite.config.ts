@@ -30,7 +30,7 @@ export default defineConfig({
         theme_color: "#39FF14",
         background_color: "#0a0b0f",
         display: "standalone",
-        orientation: "portrait-primary",
+        orientation: "any",
         start_url: basePath,
         scope: basePath,
         lang: "en",
