@@ -54,6 +54,12 @@ const androidGames: GameEntry[] = [
     blurb: "Sideloadable Android build — requires Android 7.0+. Enable 'Install unknown apps' in settings.",
     url: "https://github.com/Xion97522/EnergyTV-2Beta/releases/latest",
   },
+  {
+    id: "minecraft",
+    title: "Minecraft: Pocket Edition",
+    blurb: "Minecraft PE (APK) — download from APKVision.",
+    url: "https://apkvision.org/games/arcade/minecraft-pe-apk-55409/",
+  },
 ];
 
 function GameCard({ game }: { game: GameEntry }) {
