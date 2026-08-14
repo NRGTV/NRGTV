@@ -48,6 +48,24 @@ const windowsGames: GameEntry[] = [
 ];
 
 const androidGames: GameEntry[] = [
+ {
+    id: "gta3",
+    title: "Grand Theft Auto III (Definitive Edition)",
+    blurb: "GTA III (APK) — download from APKVision.",
+    url: "https://apkvision.org/games/action/gta-iii-definitive-115254/",
+ },
+  {
+    id: "gtasa",
+    title: "Grand Theft Auto: San Andreas (Definitive Edition)",
+    blurb: "GTA: SA (APK) — download from APKVision.",
+    url: "https://apkvision.org/games/action/gta-san-andreas-definitive-115251/",
+ },
+  {
+    id: "gtavc",
+    title: "Grand Theft Auto: Vice City (Definitive Edition)",
+    blurb: "GTA: VC (APK) — download from APKVision.",
+    url: "https://apkvision.org/games/action/gta-vice-city-definitive-115249/",
+ },
   {
     id: "minecraft",
     title: "Minecraft: Pocket Edition",
