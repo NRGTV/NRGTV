@@ -53,6 +53,12 @@ const androidGames: GameEntry[] = [
     title: "Minecraft: Pocket Edition",
     blurb: "Minecraft PE (APK) — download from APKVision.",
     url: "https://apkvision.org/games/arcade/minecraft-pe-apk-55409/",
+ },
+  {
+    id: "rdr1",
+    title: "Red Dead Redemption",
+    blurb: "Red Dead Redemption (APK) — download from APKVision.",
+    url: "https://apkvision.org/games/action/red-dead-redemption-28496/",
   },
 ];
 
