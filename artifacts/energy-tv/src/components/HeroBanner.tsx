@@ -32,7 +32,7 @@ export default function HeroBanner({ overrideItems, loading }: HeroBannerProps) 
   if (!media) return <SkeletonHero />;
 
   return (
-    <div className="relative w-full h-[60vh] min-h-[380px] max-h-[560px] overflow-hidden">
+    <div className="relative w-full h-[45vh] min-h-[320px] max-h-[420px] overflow-hidden">
       {/* Backdrop slides */}
       {featured.map((item, idx) => (
         <div
@@ -100,7 +100,7 @@ export default function HeroBanner({ overrideItems, loading }: HeroBannerProps) 
           )}
         </div>
 
-        <h1 className="text-3xl md:text-5xl font-black text-white leading-tight max-w-xl mb-2" style={{ textShadow: "0 2px 20px rgba(0,0,0,0.6)" }}>
+        <h1 className="text-2xl md:text-4xl font-black text-white leading-tight max-w-xl mb-2" style={{ textShadow: "0 2px 20px rgba(0,0,0,0.6)" }}>
           {media.title}
         </h1>
 
