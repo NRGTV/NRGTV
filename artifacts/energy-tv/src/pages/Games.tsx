@@ -54,6 +54,12 @@ const androidGames: GameEntry[] = [
     blurb: "Bloons TD6 (APK) — download from APKVision.",
     url: "https://apkvision.org/games/strategy/bloons-td-6-27971/",
  },
+ {
+    id: "bully",
+    title: "Bully",
+    blurb: "Bully (APK) — download from APKVision.",
+    url: "https://apkvision.org/games/action/bullyanniversaryeditionsapk-54560/",
+ },
   {
     id: "gta3",
     title: "Grand Theft Auto III (Definitive Edition)",
@@ -77,6 +83,12 @@ const androidGames: GameEntry[] = [
     title: "Minecraft: Pocket Edition",
     blurb: "Minecraft PE (APK) — download from APKVision.",
     url: "https://apkvision.org/games/arcade/minecraft-pe-apk-55409/",
+ },
+  {
+    id: "nba2k20",
+    title: "NBA 2K20",
+    blurb: "NBA 2K20 (APK) — download from APKVision.",
+    url: "https://apkvision.org/games/sports/nba-2k20-apk-17-50410/",
  },
   {
     id: "rdr1",
