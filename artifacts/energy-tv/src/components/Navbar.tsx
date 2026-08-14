@@ -18,7 +18,7 @@ export default function Navbar() {
     { href: "/movies",    label: "Movies",    icon: Film },
     { href: "/tv",        label: "TV Shows",  icon: Tv },
     { href: "/watchlist", label: "Watchlist", icon: Bookmark },
-    { href: "https://games.nrgtv.space",     label: "Games",     icon: Gamepad2 },
+    { href: "/games",     label: "Games",     icon: Gamepad2 },
     { href: "/search",    label: "Search",    icon: Search },
   ];
 
