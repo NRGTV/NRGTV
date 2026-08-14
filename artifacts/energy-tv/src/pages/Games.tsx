@@ -48,7 +48,13 @@ const windowsGames: GameEntry[] = [
 ];
 
 const androidGames: GameEntry[] = [
- {
+{
+    id: "brawlstars",
+    title: "Brawl Stars",
+    blurb: "Brawl Stars (APK) — download from 5play.",
+    url: "https://5play.org/en/7353-brawl-stars.html",
+ },
+  {
     id: "btd6",
     title: "Bloons TD6",
     blurb: "Bloons TD6 (APK) — download from APKVision.",
@@ -59,6 +65,12 @@ const androidGames: GameEntry[] = [
     title: "Bully",
     blurb: "Bully (APK) — download from APKVision.",
     url: "https://apkvision.org/games/action/bullyanniversaryeditionsapk-54560/",
+ },
+ {
+    id: "gs3",
+    title: "Goat Simulator 3",
+    blurb: "Goat Simulator 3 (APK) — download from 5play.",
+    url: "https://5play.org/en/22068-goat-simulator-3.html",
  },
   {
     id: "gta3",
