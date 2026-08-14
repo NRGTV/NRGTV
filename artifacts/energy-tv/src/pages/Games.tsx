@@ -49,6 +49,12 @@ const windowsGames: GameEntry[] = [
 
 const androidGames: GameEntry[] = [
  {
+    id: "btd6",
+    title: "Bloons TD6",
+    blurb: "Bloons TD6 (APK) — download from APKVision.",
+    url: "https://apkvision.org/games/strategy/bloons-td-6-27971/",
+ },
+  {
     id: "gta3",
     title: "Grand Theft Auto III (Definitive Edition)",
     blurb: "GTA III (APK) — download from APKVision.",
@@ -78,6 +84,18 @@ const androidGames: GameEntry[] = [
     blurb: "Red Dead Redemption (APK) — download from APKVision.",
     url: "https://apkvision.org/games/action/red-dead-redemption-28496/",
   },
+{
+    id: "stardew",
+    title: "Stardew Valley",
+    blurb: "Stardew Valley (APK) — download from APKVision.",
+    url: "https://apkvision.org/games/role-playing/stardew-valley-40176/",
+ },
+{
+    id: "terraria",
+    title: "Terraria",
+    blurb: "Terraria (APK) — download from APKVision.",
+    url: "https://apkvision.org/games/role-playing/terraria-apk-51597/",
+ },
 ];
 
 function GameCard({ game }: { game: GameEntry }) {
