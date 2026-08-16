@@ -186,6 +186,20 @@
 .hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 
+/* ─── Media grids — tighter columns on phones, original sizing from
+   the sm breakpoint up. Used by Movies/TV/Watchlist/Search grids. ── */
+.media-grid {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+}
+@media (min-width: 640px) {
+  .media-grid {
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(138px, 1fr));
+  }
+}
+
 /* ─── Shimmer animation for skeletons ────────────────────────────── */
 @keyframes shimmer {
   0%   { background-position: -600px 0; }
