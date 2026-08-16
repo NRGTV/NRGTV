@@ -36,7 +36,7 @@ export default function Search() {
 
   return (
     <div className="min-h-screen bg-background pt-14">
-      <div className="px-4 md:px-6 pt-6 pb-10">
+      <div className="px-3 sm:px-4 md:px-6 pt-6 pb-10">
         {/* Search input — glass */}
         <div className="relative mb-4">
           <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50 pointer-events-none" />
@@ -92,7 +92,7 @@ export default function Search() {
         </div>
 
         {isLoading ? (
-          <div className="grid gap-4" style={{ gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))" }}>
+          <div className="media-grid">
             {Array.from({length:12}).map((_,i)=><div key={i} className="flex justify-center"><SkeletonCard size="md"/></div>)}
           </div>
         ) : results.length === 0 ? (
@@ -106,7 +106,7 @@ export default function Search() {
             <p className="text-sm font-semibold text-muted-foreground/50">{query ? `No results for "${query}"` : "Start typing to search"}</p>
           </div>
         ) : (
-          <div className="grid gap-4" style={{ gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))" }}>
+          <div className="media-grid">
             {results.map((m)=><div key={m.id} className="flex justify-center"><MediaCard media={m} size="md"/></div>)}
           </div>
         )}

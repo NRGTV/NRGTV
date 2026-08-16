@@ -18,7 +18,7 @@ export default function Watchlist() {
 
   return (
     <div className="min-h-screen bg-background pt-14">
-      <div className="px-4 md:px-6 pt-6">
+      <div className="px-3 sm:px-4 md:px-6 pt-6">
         <div className="flex items-center justify-between mb-5">
           <h1 className="text-xl font-bold text-foreground">My Library</h1>
         </div>
@@ -78,7 +78,7 @@ export default function Watchlist() {
             )}
           </div>
         ) : (
-          <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
+          <div className="media-grid">
             {currentItems.map((media) => (
               <div key={media.id} className="flex justify-center">
                 <MediaCard

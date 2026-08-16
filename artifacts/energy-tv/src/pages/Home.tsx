@@ -51,10 +51,10 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <HeroBanner overrideItems={trending.data} loading={trending.isLoading} />
 
-      <div className="pt-6">
+      <div className="pt-5 sm:pt-6">
         {continueWatching.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center gap-2 mb-3 px-4 md:px-6">
+          <div className="mb-6 sm:mb-8">
+            <div className="flex items-center gap-2 mb-2.5 sm:mb-3 px-3 sm:px-4 md:px-6">
               <Clock className="w-3.5 h-3.5" style={{ color: "hsl(112,100%,54%)" }} />
               <h2
                 className="text-xs font-black uppercase tracking-widest text-foreground/90"
@@ -74,7 +74,7 @@ export default function Home() {
                 </span>
               )}
             </div>
-            <div className="flex gap-3 overflow-x-auto px-4 md:px-6 pb-2 hide-scrollbar">
+            <div className="flex gap-2 sm:gap-3 overflow-x-auto px-3 sm:px-4 md:px-6 pb-2 hide-scrollbar">
               {continueWatching.map((item) => {
                 const prog = getProgress(item.id);
                 const pct  = prog?.percent ?? 0;
@@ -114,7 +114,7 @@ export default function Home() {
 
         {!import.meta.env.VITE_TMDB_API_KEY && (
           <div
-            className="mx-4 md:mx-6 mb-8 p-4 rounded-3xl"
+            className="mx-3 sm:mx-4 md:mx-6 mb-8 p-4 rounded-2xl sm:rounded-3xl"
             style={{
               background:          "rgba(57,255,20,0.04)",
               backdropFilter:      "blur(16px)",

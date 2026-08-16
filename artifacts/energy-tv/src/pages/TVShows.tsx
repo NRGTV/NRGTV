@@ -53,7 +53,7 @@ export default function TVShows() {
 
   return (
     <div className="min-h-screen bg-background pt-14">
-      <div className="px-4 md:px-6 pt-6 pb-10">
+      <div className="px-3 sm:px-4 md:px-6 pt-6 pb-10">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <Tv className="w-4 h-4" style={{ color: "hsl(112,100%,54%)" }} />
@@ -115,7 +115,7 @@ export default function TVShows() {
         )}
 
         {q.isLoading ? (
-          <div className="grid gap-4" style={{ gridTemplateColumns:"repeat(auto-fill,minmax(138px,1fr))" }}>
+          <div className="media-grid">
             {Array.from({length:20}).map((_,i)=><div key={i} className="flex justify-center"><SkeletonCard size="lg"/></div>)}
           </div>
         ) : filtered.length === 0 ? (
@@ -126,7 +126,7 @@ export default function TVShows() {
           </div>
         ) : (
           <>
-            <div className="grid gap-4" style={{ gridTemplateColumns:"repeat(auto-fill,minmax(138px,1fr))" }}>
+            <div className="media-grid">
               {filtered.map((m)=><div key={m.id} className="flex justify-center"><MediaCard media={m} size="lg"/></div>)}
             </div>
             {hasKey() && (
