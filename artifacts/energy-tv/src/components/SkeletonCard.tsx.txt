@@ -1,0 +1,72 @@
+export function SkeletonCard({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
+  const w = size === "sm" ? "w-24 sm:w-28" : size === "lg" ? "w-28 sm:w-44" : "w-28 sm:w-36";
+  const h = size === "sm" ? "h-36 sm:h-40" : size === "lg" ? "h-40 sm:h-64" : "h-40 sm:h-52";
+  return (
+    <div className={`${w} flex-shrink-0`}>
+      <div
+        className={`${h} rounded-2xl skeleton-shimmer`}
+        style={{
+          background: "rgba(255,255,255,0.03)",
+          border: "1px solid rgba(255,255,255,0.05)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+        }}
+      />
+      <div className="mt-2.5 space-y-1.5 px-0.5">
+        <div className="h-2.5 rounded-full skeleton-shimmer w-4/5" style={{ background: "rgba(255,255,255,0.04)" }} />
+        <div className="h-2 rounded-full skeleton-shimmer w-3/5" style={{ background: "rgba(255,255,255,0.03)" }} />
+      </div>
+    </div>
+  );
+}
+
+export function SkeletonRow({ count = 6, size = "md" }: { count?: number; size?: "sm" | "md" | "lg" }) {
+  return (
+    <div className="mb-6 sm:mb-8">
+      <div className="flex items-center justify-between mb-2.5 sm:mb-3 px-3 sm:px-4 md:px-6">
+        <div className="h-3 rounded-full skeleton-shimmer w-32" style={{ background: "rgba(255,255,255,0.04)" }} />
+      </div>
+      <div className="flex gap-2 sm:gap-3 px-3 sm:px-4 md:px-6 overflow-hidden">
+        {Array.from({ length: count }).map((_, i) => <SkeletonCard key={i} size={size} />)}
+      </div>
+    </div>
+  );
+}
+
+export function SkeletonHero() {
+  return (
+    <div
+      className="w-full h-[36vh] sm:h-[45vh] min-h-[260px] sm:min-h-[320px] max-h-[420px] skeleton-shimmer flex items-end p-4 sm:p-6 md:p-10"
+      style={{ background: "rgba(255,255,255,0.02)" }}
+    >
+      <div className="space-y-3 w-full max-w-lg">
+        <div className="h-6 rounded-full skeleton-shimmer w-24" style={{ background: "rgba(255,255,255,0.04)" }} />
+        <div className="h-12 rounded-2xl skeleton-shimmer w-3/4" style={{ background: "rgba(255,255,255,0.05)" }} />
+        <div className="h-3 rounded-full skeleton-shimmer w-full" style={{ background: "rgba(255,255,255,0.03)" }} />
+        <div className="h-3 rounded-full skeleton-shimmer w-5/6" style={{ background: "rgba(255,255,255,0.03)" }} />
+        <div className="flex gap-3 mt-5">
+          <div className="h-10 rounded-2xl skeleton-shimmer w-28" style={{ background: "rgba(57,255,20,0.08)" }} />
+          <div className="h-10 rounded-2xl skeleton-shimmer w-24" style={{ background: "rgba(255,255,255,0.04)" }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function SkeletonDetail() {
+  return (
+    <div className="min-h-screen bg-background pt-14">
+      <div
+        className="h-[52vh] skeleton-shimmer"
+        style={{ background: "rgba(255,255,255,0.02)" }}
+      />
+      <div className="px-6 py-5 space-y-4">
+        <div className="h-8 rounded-2xl skeleton-shimmer w-64" style={{ background: "rgba(255,255,255,0.04)" }} />
+        <div className="h-3 rounded-full skeleton-shimmer" style={{ background: "rgba(255,255,255,0.03)" }} />
+        <div className="h-3 rounded-full skeleton-shimmer w-4/5" style={{ background: "rgba(255,255,255,0.03)" }} />
+        <div className="flex gap-2">
+          {[1,2,3].map((i) => <div key={i} className="h-6 rounded-full skeleton-shimmer w-16" style={{ background: "rgba(255,255,255,0.03)" }} />)}
+        </div>
+      </div>
+    </div>
+  );
+}
