@@ -10,6 +10,12 @@ interface GameEntry {
 
 const windowsGames: GameEntry[] = [
   {
+    id: "valorant",
+    title: "VALORANT",
+    blurb: "Free-to-play FPS from Riot Games",
+    url: "https://playvalorant.com/en-gb/",
+  },
+  {
     id: "bo2",
     title: "Call of Duty: Black Ops 2",
     blurb: "Play online via Plutonium — free dedicated servers, mod support & more.",
