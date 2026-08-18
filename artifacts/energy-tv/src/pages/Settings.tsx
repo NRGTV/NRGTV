@@ -147,7 +147,7 @@ export default function Settings() {
             <div className="px-4 py-3 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Version</span>
-                <span className="text-sm text-foreground font-medium">1.0.0</span>
+                <span className="text-sm text-foreground font-medium">9.0.0</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Build</span>
