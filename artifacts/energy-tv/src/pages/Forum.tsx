@@ -18,6 +18,7 @@
  * the component shapes below are a reasonable starting schema.
  */
 
+import { useState } from "react";
 import { Link } from "wouter";
 import {
   MessagesSquare,
@@ -29,48 +30,24 @@ import {
   ChevronRight,
   Plus,
 } from "lucide-react";
+import {
+  useForumCategories,
+  useForumThreads,
+  useCreateThread,
+  type ForumCategory,
+  type ForumThreadSummary,
+} from "@/hooks/useForum";
+import { useAuth } from "@/context/AuthContext";
 
-// ─── Types ──────────────────────────────────────────────────────
-
-interface ForumCategory {
-  id: string;
-  name: string;
-  description: string;
-  threadCount: number;
-  postCount: number;
-  icon?: string;
+function timeAgo(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
 }
-
-interface ForumThreadSummary {
-  id: string;
-  title: string;
-  category: string;
-  author: string;
-  replies: number;
-  views: number;
-  lastActivity: string;
-  pinned?: boolean;
-  locked?: boolean;
-}
-
-// ─── Mock data — replace with real fetch/query ────────────────
-
-const MOCK_CATEGORIES: ForumCategory[] = [
-  { id: "announcements", name: "Announcements", description: "Official updates, changelogs, and downtime notices.", threadCount: 12, postCount: 84 },
-  { id: "general", name: "General Discussion", description: "Anything NRGTV related that doesn't fit elsewhere.", threadCount: 143, postCount: 1820 },
-  { id: "requests", name: "Content Requests", description: "Ask for a movie, show, or game to be added.", threadCount: 96, postCount: 512 },
-  { id: "bugs", name: "Bug Reports", description: "Found something broken? Report it here.", threadCount: 58, postCount: 301 },
-  { id: "off-topic", name: "Off Topic", description: "Everything else — music, gaming, life.", threadCount: 74, postCount: 960 },
-];
-
-const MOCK_THREADS: ForumThreadSummary[] = [
-  { id: "t1", title: "Server maintenance — Aug 20th, 2am AEST", category: "Announcements", author: "admin", replies: 4, views: 210, lastActivity: "2h ago", pinned: true },
-  { id: "t2", title: "New adblock layer rolling out this week", category: "Announcements", author: "admin", replies: 11, views: 480, lastActivity: "5h ago", pinned: true },
-  { id: "t3", title: "Anyone else getting buffering on the TV app?", category: "Bug Reports", author: "reeve92", replies: 7, views: 96, lastActivity: "18m ago" },
-  { id: "t4", title: "Request: add Terraria to the Android games list", category: "Content Requests", author: "goatlord", replies: 2, views: 40, lastActivity: "44m ago" },
-  { id: "t5", title: "What are you all watching this week?", category: "General Discussion", author: "nightowl", replies: 23, views: 340, lastActivity: "1h ago" },
-  { id: "t6", title: "Locked: duplicate of #482", category: "Bug Reports", author: "mod_kai", replies: 1, views: 12, lastActivity: "3d ago", locked: true },
-];
 
 // ─── Shared glass card style ────────────────────────────────────
 
@@ -124,11 +101,11 @@ function CategoryCard({ category }: { category: ForumCategory }) {
 
         <div className="hidden sm:flex items-center gap-4 shrink-0 text-right">
           <div>
-            <p className="text-sm font-bold text-foreground">{category.threadCount}</p>
+            <p className="text-sm font-bold text-foreground">{category.threadCount ?? 0}</p>
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50">Threads</p>
           </div>
           <div>
-            <p className="text-sm font-bold text-foreground">{category.postCount}</p>
+            <p className="text-sm font-bold text-foreground">{category.postCount ?? 0}</p>
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50">Posts</p>
           </div>
           <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-[hsl(112,100%,54%)] transition-colors" />
@@ -156,19 +133,19 @@ function ThreadRow({ thread }: { thread: ForumThreadSummary }) {
             <h4 className="text-sm font-semibold text-foreground truncate">{thread.title}</h4>
           </div>
           <p className="text-xs text-muted-foreground/50">
-            {thread.category} · started by <span className="text-muted-foreground/70">{thread.author}</span>
+            {thread.category_id} · started by <span className="text-muted-foreground/70">{thread.author_name}</span>
           </p>
         </div>
 
         <div className="hidden sm:flex items-center gap-4 shrink-0 text-xs text-muted-foreground/50">
           <span className="flex items-center gap-1">
-            <MessagesSquare className="w-3.5 h-3.5" /> {thread.replies}
+            <MessagesSquare className="w-3.5 h-3.5" /> {thread.replies ?? 0}
           </span>
           <span className="flex items-center gap-1">
             <Users className="w-3.5 h-3.5" /> {thread.views}
           </span>
           <span className="flex items-center gap-1 w-16 justify-end">
-            <Clock className="w-3.5 h-3.5" /> {thread.lastActivity}
+            <Clock className="w-3.5 h-3.5" /> {timeAgo(thread.last_activity_at)}
           </span>
         </div>
       </div>
@@ -178,7 +155,95 @@ function ThreadRow({ thread }: { thread: ForumThreadSummary }) {
 
 // ─── Page ───────────────────────────────────────────────────────
 
+function NewThreadForm({
+  categories,
+  onClose,
+}: {
+  categories: ForumCategory[];
+  onClose: () => void;
+}) {
+  const [categoryId, setCategoryId] = useState(categories[0]?.id ?? "");
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const createThread = useCreateThread();
+
+  const handleSubmit = async () => {
+    if (!title.trim() || !body.trim() || !categoryId) return;
+    await createThread.mutateAsync({ categoryId, title, body });
+    onClose();
+  };
+
+  return (
+    <div className="rounded-2xl p-4 mb-6" style={glassCard}>
+      <div className="flex flex-col gap-3">
+        <select
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value)}
+          className="rounded-xl px-3 py-2 text-sm text-foreground outline-none"
+          style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
+        >
+          {categories.map((c) => (
+            <option key={c.id} value={c.id} style={{ background: "#0a0c12" }}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Thread title"
+          className="rounded-xl px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none"
+          style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
+        />
+
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="What's on your mind?"
+          rows={3}
+          className="rounded-xl px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 resize-none outline-none"
+          style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
+        />
+
+        {createThread.isError && (
+          <p className="text-xs text-red-400">
+            {(createThread.error as Error)?.message ?? "Failed to create thread"}
+          </p>
+        )}
+
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="px-3.5 py-1.5 rounded-xl text-sm font-semibold text-muted-foreground/70"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={createThread.isPending || !title.trim() || !body.trim()}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-40"
+            style={{
+              background: "linear-gradient(135deg, hsl(112,100%,54%) 0%, hsl(112,100%,36%) 100%)",
+              color: "#000",
+              boxShadow: "0 0 16px rgba(57,255,20,0.3)",
+            }}
+          >
+            <Plus className="w-4 h-4" />
+            {createThread.isPending ? "Posting..." : "Post Thread"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Forum() {
+  const { user } = useAuth();
+  const { data: categories, isLoading: categoriesLoading } = useForumCategories();
+  const { data: threads, isLoading: threadsLoading } = useForumThreads();
+  const [showNewThread, setShowNewThread] = useState(false);
+
   return (
     <div className="min-h-screen bg-background pt-14">
       <div className="px-4 md:px-6 pt-6 pb-10 max-w-5xl mx-auto">
@@ -190,13 +255,16 @@ export default function Forum() {
           </div>
 
           <button
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-sm font-semibold transition-all"
+            onClick={() => (user ? setShowNewThread((v) => !v) : undefined)}
+            disabled={!user}
+            title={user ? undefined : "Sign in to post"}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-40"
             style={{
               background: "linear-gradient(135deg, hsl(112,100%,54%) 0%, hsl(112,100%,36%) 100%)",
               color: "#000",
               boxShadow: "0 0 16px rgba(57,255,20,0.3)",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 0 24px rgba(57,255,20,0.55)"; }}
+            onMouseEnter={(e) => { if (user) e.currentTarget.style.boxShadow = "0 0 24px rgba(57,255,20,0.55)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 0 16px rgba(57,255,20,0.3)"; }}
           >
             <Plus className="w-4 h-4" />
@@ -207,6 +275,10 @@ export default function Forum() {
           Discuss NRGTV, request content, report bugs, or just hang out.
         </p>
 
+        {showNewThread && categories && (
+          <NewThreadForm categories={categories} onClose={() => setShowNewThread(false)} />
+        )}
+
         {/* Categories */}
         <div className="flex items-center gap-2 mb-3">
           <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground/50">
@@ -214,7 +286,10 @@ export default function Forum() {
           </h2>
         </div>
         <div className="flex flex-col gap-2.5 mb-8">
-          {MOCK_CATEGORIES.map((c) => (
+          {categoriesLoading && (
+            <p className="text-xs text-muted-foreground/40">Loading categories...</p>
+          )}
+          {categories?.map((c) => (
             <CategoryCard key={c.id} category={c} />
           ))}
         </div>
@@ -227,7 +302,13 @@ export default function Forum() {
           </h2>
         </div>
         <div className="flex flex-col gap-2 rounded-2xl p-2" style={glassCard}>
-          {MOCK_THREADS.map((t) => (
+          {threadsLoading && (
+            <p className="text-xs text-muted-foreground/40 px-2 py-1">Loading threads...</p>
+          )}
+          {!threadsLoading && threads?.length === 0 && (
+            <p className="text-xs text-muted-foreground/40 px-2 py-1">No threads yet — start one!</p>
+          )}
+          {threads?.map((t) => (
             <ThreadRow key={t.id} thread={t} />
           ))}
         </div>

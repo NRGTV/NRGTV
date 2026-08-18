@@ -2,11 +2,7 @@
  * ForumThread.tsx
  * -------------------------------------------------------
  * Single-thread view — original post, replies, reply box.
- * Static template with mock data; route param :id is read
- * but not yet used to fetch anything real.
- *
- * Add to App.tsx:
- *   <Route path="/forum/:id" component={ForumThread} />
+ * Reads/writes through useForum.ts (Supabase-backed).
  */
 
 import { useState } from "react";
@@ -14,20 +10,11 @@ import { useParams, Link } from "wouter";
 import {
   MessagesSquare,
   ArrowLeft,
-  Pin,
-  Lock,
   ThumbsUp,
   Send,
 } from "lucide-react";
-
-interface ForumPost {
-  id: string;
-  author: string;
-  body: string;
-  postedAt: string;
-  likes: number;
-  isOriginal?: boolean;
-}
+import { useForumThread, useCreateReply, type ForumPost } from "@/hooks/useForum";
+import { useAuth } from "@/context/AuthContext";
 
 const NEON = "hsl(112,100%,54%)";
 
@@ -39,40 +26,24 @@ const glassCard: React.CSSProperties = {
   boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
 };
 
-// Mock — replace with a fetch keyed on the :id route param
-const MOCK_POSTS: ForumPost[] = [
-  {
-    id: "p1",
-    author: "admin",
-    body: "Heads up — we're rolling out the new adblock layer this week. If you notice popups slipping through on a specific source, reply here with the source name and we'll get it patched.",
-    postedAt: "5h ago",
-    likes: 14,
-    isOriginal: true,
-  },
-  {
-    id: "p2",
-    author: "reeve92",
-    body: "Nice, been getting a lot of redirect spam on a few of the backup sources lately. Will report specifics if it keeps happening.",
-    postedAt: "4h ago",
-    likes: 3,
-  },
-  {
-    id: "p3",
-    author: "nightowl",
-    body: "Appreciate the transparency on this stuff, most streaming sites just silently break instead of explaining what changed.",
-    postedAt: "2h ago",
-    likes: 8,
-  },
-];
+function timeAgo(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
 
 function PostCard({ post }: { post: ForumPost }) {
-  const initial = post.author[0]?.toUpperCase() ?? "?";
+  const initial = post.author_name[0]?.toUpperCase() ?? "?";
   return (
     <div
       className="rounded-2xl p-4"
       style={{
         ...glassCard,
-        border: post.isOriginal ? "1px solid rgba(57,255,20,0.15)" : glassCard.border,
+        border: post.is_original ? "1px solid rgba(57,255,20,0.15)" : glassCard.border,
       }}
     >
       <div className="flex items-start gap-3">
@@ -88,8 +59,8 @@ function PostCard({ post }: { post: ForumPost }) {
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm font-bold text-foreground">{post.author}</span>
-            {post.isOriginal && (
+            <span className="text-sm font-bold text-foreground">{post.author_name}</span>
+            {post.is_original && (
               <span
                 className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
                 style={{ background: "rgba(57,255,20,0.1)", color: NEON }}
@@ -97,7 +68,7 @@ function PostCard({ post }: { post: ForumPost }) {
                 OP
               </span>
             )}
-            <span className="text-[11px] text-muted-foreground/40">{post.postedAt}</span>
+            <span className="text-[11px] text-muted-foreground/40">{timeAgo(post.created_at)}</span>
           </div>
 
           <p className="text-sm text-muted-foreground/80 leading-relaxed whitespace-pre-wrap">
@@ -118,11 +89,14 @@ function PostCard({ post }: { post: ForumPost }) {
 
 export default function ForumThread() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const { thread, posts } = useForumThread(id);
+  const createReply = useCreateReply(id ?? "");
   const [reply, setReply] = useState("");
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!reply.trim()) return;
-    // TODO: wire up to backend — post { threadId: id, body: reply }
+    await createReply.mutateAsync(reply);
     setReply("");
   };
 
@@ -138,54 +112,76 @@ export default function ForumThread() {
         </Link>
 
         {/* Thread header */}
-        <div className="flex items-start gap-2 mb-1">
-          <MessagesSquare className="w-4 h-4 mt-0.5 shrink-0" style={{ color: NEON }} />
-          <h1 className="text-lg font-black text-foreground leading-tight">
-            Server maintenance — Aug 20th, 2am AEST
-          </h1>
-        </div>
-        <div className="flex items-center gap-2 mb-6 text-xs text-muted-foreground/50">
-          <span>Announcements</span>
-          <span>·</span>
-          <span>Thread #{id}</span>
-        </div>
+        {thread.isLoading && (
+          <p className="text-xs text-muted-foreground/40 mb-6">Loading thread...</p>
+        )}
+        {thread.data && (
+          <>
+            <div className="flex items-start gap-2 mb-1">
+              <MessagesSquare className="w-4 h-4 mt-0.5 shrink-0" style={{ color: NEON }} />
+              <h1 className="text-lg font-black text-foreground leading-tight">
+                {thread.data.title}
+              </h1>
+            </div>
+            <div className="flex items-center gap-2 mb-6 text-xs text-muted-foreground/50">
+              <span>{thread.data.category_id}</span>
+              <span>·</span>
+              <span>started by {thread.data.author_name}</span>
+            </div>
+          </>
+        )}
 
         {/* Posts */}
         <div className="flex flex-col gap-3 mb-6">
-          {MOCK_POSTS.map((post) => (
+          {posts.isLoading && (
+            <p className="text-xs text-muted-foreground/40">Loading posts...</p>
+          )}
+          {posts.data?.map((post) => (
             <PostCard key={post.id} post={post} />
           ))}
         </div>
 
         {/* Reply box */}
-        <div className="rounded-2xl p-4" style={glassCard}>
-          <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/50 mb-2 block">
-            Reply
-          </label>
-          <textarea
-            value={reply}
-            onChange={(e) => setReply(e.target.value)}
-            placeholder="Write a reply..."
-            rows={3}
-            className="w-full rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 resize-none outline-none"
-            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
-          />
-          <div className="flex justify-end mt-3">
-            <button
-              onClick={handleSubmit}
-              disabled={!reply.trim()}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-40"
-              style={{
-                background: "linear-gradient(135deg, hsl(112,100%,54%) 0%, hsl(112,100%,36%) 100%)",
-                color: "#000",
-                boxShadow: "0 0 16px rgba(57,255,20,0.3)",
-              }}
-            >
-              <Send className="w-4 h-4" />
-              Post Reply
-            </button>
+        {thread.data?.locked ? (
+          <p className="text-xs text-muted-foreground/50 text-center py-4">
+            This thread is locked — no new replies.
+          </p>
+        ) : (
+          <div className="rounded-2xl p-4" style={glassCard}>
+            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground/50 mb-2 block">
+              Reply
+            </label>
+            <textarea
+              value={reply}
+              onChange={(e) => setReply(e.target.value)}
+              placeholder={user ? "Write a reply..." : "Sign in to reply"}
+              rows={3}
+              disabled={!user}
+              className="w-full rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 resize-none outline-none disabled:opacity-50"
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
+            />
+            {createReply.isError && (
+              <p className="text-xs text-red-400 mt-2">
+                {(createReply.error as Error)?.message ?? "Failed to post reply"}
+              </p>
+            )}
+            <div className="flex justify-end mt-3">
+              <button
+                onClick={handleSubmit}
+                disabled={!user || !reply.trim() || createReply.isPending}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-40"
+                style={{
+                  background: "linear-gradient(135deg, hsl(112,100%,54%) 0%, hsl(112,100%,36%) 100%)",
+                  color: "#000",
+                  boxShadow: "0 0 16px rgba(57,255,20,0.3)",
+                }}
+              >
+                <Send className="w-4 h-4" />
+                {createReply.isPending ? "Posting..." : "Post Reply"}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
