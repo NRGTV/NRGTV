@@ -19,7 +19,6 @@ export default function Navbar() {
     { href: "/tv",        label: "TV Shows",  icon: Tv },
     { href: "/watchlist", label: "Watchlist", icon: Bookmark },
     { href: "/games",     label: "Games",     icon: Gamepad2 },
-    { href: "/forum",     label: "Forum",     icon: MessagesSquare },
     { href: "/search",    label: "Search",    icon: Search },
   ];
 
@@ -271,6 +270,18 @@ export default function Navbar() {
             </Link>
           )}
 
+          <Link href="/forum">
+            <button
+              className={`hidden md:flex p-2 rounded-xl transition-all ${isActive("/forum") ? "glass-nav-active" : "text-muted-foreground hover:text-foreground"}`}
+              style={!isActive("/forum") ? { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" } : undefined}
+              onMouseEnter={!isActive("/forum") ? (e) => { (e.currentTarget).style.background = "rgba(255,255,255,0.08)"; } : undefined}
+              onMouseLeave={!isActive("/forum") ? (e) => { (e.currentTarget).style.background = "rgba(255,255,255,0.04)"; } : undefined}
+              aria-label="Forum"
+            >
+              <MessagesSquare className="w-4 h-4" />
+            </button>
+          </Link>
+
           <div className="hidden md:flex">
             <AuthSection />
           </div>
@@ -334,6 +345,16 @@ export default function Navbar() {
                 onClick={() => setMobileOpen(false)}
               >
                 <Settings className="w-5 h-5" /> Settings
+              </div>
+            </Link>
+
+            <Link href="/forum">
+              <div
+                className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium cursor-pointer ${isActive("/forum") ? "glass-nav-active" : "text-muted-foreground"}`}
+                style={!isActive("/forum") ? { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" } : {}}
+                onClick={() => setMobileOpen(false)}
+              >
+                <MessagesSquare className="w-5 h-5" /> Forum
               </div>
             </Link>
 
