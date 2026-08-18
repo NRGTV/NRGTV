@@ -21,6 +21,8 @@ import Watchlist from "@/pages/Watchlist";
 import Detail from "@/pages/Detail";
 import Settings from "@/pages/Settings";
 import SignIn from "@/pages/SignIn";
+import Forum from "@/pages/Forum";
+import ForumThread from "@/pages/ForumThread";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +41,8 @@ function Router() {
         <Route path="/detail/:type/:id" component={Detail} />
         <Route path="/settings" component={Settings} />
         <Route path="/signin" component={SignIn} />
+        <Route path="/forum" component={Forum} />
+        <Route path="/forum/:id" component={ForumThread} />
         <Route component={NotFound} />
       </Switch>
     </>
