@@ -188,6 +188,10 @@ jobs:
           // IPC bridge placeholder
           EOF
 
+      - name: Copy app icon
+        shell: bash
+        run: mkdir -p electron/build && cp build-resources/icon-1024.png electron/build/icon.png
+
       - name: Install Electron deps
         working-directory: electron
         run: npm install
@@ -267,6 +271,10 @@ jobs:
         run: |
           npx cap add android
           npx cap sync android
+
+      - name: Generate Android app icon
+        working-directory: capacitor-app
+        run: mkdir -p assets && cp ../build-resources/icon-1024.png assets/icon.png && npm install --save-dev @capacitor/assets && npx capacitor-assets generate --android
 
       - name: Decode keystore & set signing env
         working-directory: capacitor-app
