@@ -161,21 +161,38 @@ jobs:
               return { action: 'deny' };
             });
 
-            // Block the main window from ever being navigated to an external
-            // site — this is the classic ad "redirect"/popunder vector where
-            // a script inside a player iframe hijacks the top-level frame.
-            const isInternal = (url) => url.startsWith('file://');
+            // Domains the video player iframe is allowed to load/navigate to.
+            // Everything else — ad redirects hijacking the iframe, popunder
+            // scripts, tracker bounces — gets blocked, whether it targets the
+            // main window or a nested frame.
+            const ALLOWED_FRAME_HOSTS = ['vidlink.pro', 'tmdb.org', 'themoviedb.org'];
 
-            win.webContents.on('will-navigate', (event, url) => {
-              if (!isInternal(url)) {
-                console.log(`[NRGTV] Blocked external navigation: ${url}`);
-                event.preventDefault();
+            const hostAllowed = (urlStr) => {
+              try {
+                const { hostname } = new URL(urlStr);
+                return ALLOWED_FRAME_HOSTS.some((h) => hostname === h || hostname.endsWith(`.${h}`));
+              } catch {
+                return false;
               }
-            });
+            };
 
-            win.webContents.on('will-redirect', (event, url) => {
-              if (!isInternal(url)) {
-                console.log(`[NRGTV] Blocked external redirect: ${url}`);
+            // will-frame-navigate fires for EVERY frame (main window AND any
+            // nested iframe), unlike the legacy will-navigate/will-redirect
+            // events which only ever cover the top-level frame. This is what
+            // actually catches an ad script redirecting the player iframe.
+            win.webContents.on('will-frame-navigate', (event) => {
+              const { url, isMainFrame } = event;
+
+              if (isMainFrame) {
+                if (!url.startsWith('file://')) {
+                  console.log(`[NRGTV] Blocked main-window navigation: ${url}`);
+                  event.preventDefault();
+                }
+                return;
+              }
+
+              if (!hostAllowed(url)) {
+                console.log(`[NRGTV] Blocked frame redirect: ${url}`);
                 event.preventDefault();
               }
             });
