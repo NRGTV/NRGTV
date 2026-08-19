@@ -153,6 +153,33 @@ jobs:
               },
             });
 
+            // Block every attempt to open a new window/tab (popups, popunders,
+            // target="_blank" links, window.open — including from embedded
+            // iframes). Nothing is ever allowed to spawn its own window.
+            win.webContents.setWindowOpenHandler(({ url }) => {
+              console.log(`[NRGTV] Blocked new-window request: ${url}`);
+              return { action: 'deny' };
+            });
+
+            // Block the main window from ever being navigated to an external
+            // site — this is the classic ad "redirect"/popunder vector where
+            // a script inside a player iframe hijacks the top-level frame.
+            const isInternal = (url) => url.startsWith('file://');
+
+            win.webContents.on('will-navigate', (event, url) => {
+              if (!isInternal(url)) {
+                console.log(`[NRGTV] Blocked external navigation: ${url}`);
+                event.preventDefault();
+              }
+            });
+
+            win.webContents.on('will-redirect', (event, url) => {
+              if (!isInternal(url)) {
+                console.log(`[NRGTV] Blocked external redirect: ${url}`);
+                event.preventDefault();
+              }
+            });
+
             session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
               callback({
                 responseHeaders: {
