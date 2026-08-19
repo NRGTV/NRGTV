@@ -240,7 +240,7 @@ jobs:
           mkdir -p capacitor-app
           cat > capacitor-app/package.json << 'EOF'
           {
-            "name": "energy-tv-android",
+            "name": "nrg-tv-android",
             "version": "1.0.0",
             "dependencies": {
               "@capacitor/android": "^6.0.0",
@@ -252,8 +252,8 @@ jobs:
 
           cat > capacitor-app/capacitor.config.json << 'EOF'
           {
-            "appId": "com.craze.energytv",
-            "appName": "EnergyTV",
+            "appId": "space.nrgtv.nrgtv",
+            "appName": "NRGTV",
             "webDir": "www"
           }
           EOF
