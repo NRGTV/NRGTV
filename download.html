@@ -34,12 +34,12 @@
 
   .logo-bolt {
     width: 36px; height: 36px;
-    background: #39FF14;
-    border-radius: 6px;
+    border-radius: 8px;
+    overflow: hidden;
     display: flex; align-items: center; justify-content: center;
   }
 
-  .logo-bolt svg { width: 20px; height: 20px; fill: #09090b; }
+  .logo-bolt img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
   .logo-name {
     font-size: 22px;
@@ -76,6 +76,38 @@
     max-width: 400px;
     margin: 0 auto;
     line-height: 1.65;
+  }
+
+  /* ── Detected-platform CTA ── */
+  .detect-cta {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    margin: 1.75rem auto 0;
+    padding: 0.75rem 0.9rem 0.75rem 1.1rem;
+    max-width: fit-content;
+    background: rgba(57,255,20,0.06);
+    border: 1px solid rgba(57,255,20,0.25);
+    border-radius: 100px;
+  }
+
+  .detect-cta.visible { display: inline-flex; }
+
+  .detect-cta-text { font-size: 13px; color: #d4d4d8; }
+  .detect-cta-text b { color: #fafafa; }
+
+  .detect-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #39FF14;
+    color: #09090b;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 100px;
+    text-decoration: none;
+    white-space: nowrap;
   }
 
   /* ── Section label ── */
@@ -115,6 +147,26 @@
     border-color: rgba(57,255,20,0.3);
     background: #141416;
   }
+
+  .card.recommended {
+    border-color: rgba(57,255,20,0.5);
+    background: #131810;
+  }
+
+  .card-tag {
+    display: none;
+    align-self: flex-start;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #09090b;
+    background: #39FF14;
+    padding: 2px 7px;
+    border-radius: 100px;
+    font-weight: 700;
+  }
+
+  .card.recommended .card-tag { display: inline-block; }
 
   .card-icon {
     width: 36px; height: 36px;
@@ -194,6 +246,13 @@
     background: #141416;
   }
 
+  .apk-card.recommended {
+    border-color: rgba(57,255,20,0.5);
+    background: #131810;
+  }
+
+  .apk-card + .apk-card { margin-top: 10px; }
+
   .apk-icon {
     width: 44px; height: 44px;
     border-radius: 10px;
@@ -234,22 +293,30 @@
 <div class="page">
 
   <div class="hero">
-    <a class="logo" href="https://github.com/Xion97522/EnergyTV-2Beta" target="_blank" rel="noopener">
+    <a class="logo" href="https://github.com/NRGTV/NRGTV" target="_blank" rel="noopener">
       <div class="logo-bolt">
-        <svg viewBox="0 0 24 24"><path d="M13 2L4.5 13.5H11L10 22L19.5 10H13L13 2Z"/></svg>
+        <img src="./build-resources/icon-1024.png" alt="NRGTV" />
       </div>
       <span class="logo-name">NRGTV</span>
     </a>
     <div class="badge">Now available</div>
     <h1>Download the app</h1>
     <p>Stream movies and TV shows on every platform. All builds are free.</p>
+
+    <div class="detect-cta" id="detectCta">
+      <span class="detect-cta-text">You're on <b id="detectPlatformName"></b></span>
+      <a class="detect-cta-btn" id="detectCtaBtn" href="#" target="_blank" rel="noopener">
+        <span id="detectCtaLabel">Download</span> ↓
+      </a>
+    </div>
   </div>
 
   <p class="section-label">Desktop</p>
 
   <div class="cards">
 
-    <a class="card" href="https://github.com/Xion97522/EnergyTV-2Beta/releases/latest" target="_blank" rel="noopener">
+    <a class="card" id="card-linux" data-platform="linux" href="https://github.com/NRGTV/NRGTV/releases/latest" target="_blank" rel="noopener">
+      <span class="card-tag">Recommended</span>
       <div class="card-icon">
         <!-- Linux -->
         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
@@ -259,20 +326,22 @@
       <div class="card-arrow">↗</div>
     </a>
 
-    <a class="card" href="https://github.com/Xion97522/EnergyTV-2Beta/releases/latest" target="_blank" rel="noopener">
+    <a class="card" id="card-mac" data-platform="mac" href="https://github.com/NRGTV/NRGTV/releases/latest" target="_blank" rel="noopener">
+      <span class="card-tag">Recommended</span>
       <div class="card-icon">
         <!-- Apple -->
-        <svg viewBox="0 0 24 24"><path d="M18.71 19.5C17.88 20.74 17 21.95 15.66 21.97C14.32 22 13.89 21.18 12.37 21.18C10.84 21.18 10.37 21.95 9.1 22C7.78 22.05 6.8 20.68 5.96 19.47C4.25 17 2.94[...]"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.32.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11"/></svg>
       </div>
       <div class="card-name">macOS</div>
       <div class="card-formats">.dmg · .zip</div>
       <div class="card-arrow">↗</div>
     </a>
 
-    <a class="card" href="https://github.com/Xion97522/EnergyTV-2Beta/releases/latest" target="_blank" rel="noopener">
+    <a class="card" id="card-windows" data-platform="windows" href="https://github.com/NRGTV/NRGTV/releases/latest" target="_blank" rel="noopener">
+      <span class="card-tag">Recommended</span>
       <div class="card-icon">
         <!-- Windows -->
-        <svg viewBox="0 0 24 24"><path d="M3 5.75V11H11V4H4.75C3.785 4 3 4.785 3 5.75ZM3 18.25C3 19.215 3.785 20 4.75 20H11V13H3V18.25ZM13 20H19.25C20.215 20 21 19.215 21 18.25V13H13V20ZM21 11V5.[...]"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M3 5.75V11H11V4H4.75C3.785 4 3 4.785 3 5.75ZM3 18.25C3 19.215 3.785 20 4.75 20H11V13H3V18.25ZM13 20H19.25C20.215 20 21 19.215 21 18.25V13H13V20ZM13 11H21V5.75C21 4.785 20.215 4 19.25 4H13V11Z"/></svg>
       </div>
       <div class="card-name">Windows</div>
       <div class="card-formats">.exe installer · portable</div>
@@ -281,7 +350,7 @@
 
   </div>
 
-  <a class="all-releases" href="https://github.com/Xion97522/EnergyTV-2Beta/releases" target="_blank" rel="noopener">
+  <a class="all-releases" href="https://github.com/NRGTV/NRGTV/releases" target="_blank" rel="noopener">
     Browse all releases on GitHub →
   </a>
 
@@ -290,14 +359,26 @@
   <p class="section-label">Mobile</p>
 
   <div class="apk-wrap">
-    <a class="apk-card" href="https://github.com/Xion97522/EnergyTV-2Beta/releases/latest" target="_blank" rel="noopener">
+    <a class="apk-card" id="card-android" data-platform="android" href="https://github.com/NRGTV/NRGTV/releases/latest" target="_blank" rel="noopener">
       <div class="apk-icon">
         <!-- Android -->
-        <svg viewBox="0 0 24 24"><path d="M17.6 9.48L19.44 6.3C19.56 6.09 19.5 5.82 19.29 5.7C19.08 5.58 18.81 5.64 18.69 5.85L16.83 9.06C15.43 8.4 13.86 8.04 12 8.04C10.14 8.04 8.57 8.4 7.17 9.0[...]"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24c-2.86-1.21-6.08-1.21-8.94 0L5.65 5.67c-.19-.29-.58-.38-.87-.2-.28.18-.37.54-.22.83L6.4 9.48C3.3 11.25 1.28 14.44 1 18h22c-.28-3.56-2.3-6.75-5.4-8.52M7 15.25c-.69 0-1.25-.56-1.25-1.25S6.31 12.75 7 12.75 8.25 13.31 8.25 14 7.69 15.25 7 15.25M17 15.25c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25"/></svg>
       </div>
       <div class="apk-info">
         <div class="apk-name">Android APK</div>
         <div class="apk-sub">Sideload — Android 7.0+</div>
+      </div>
+      <div class="apk-arrow">↗</div>
+    </a>
+
+    <a class="apk-card" id="card-ios" data-platform="ios" href="https://nrgtv.space" target="_self">
+      <div class="apk-icon">
+        <!-- iOS / Apple -->
+        <svg viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.32.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11"/></svg>
+      </div>
+      <div class="apk-info">
+        <div class="apk-name">iPhone &amp; iPad</div>
+        <div class="apk-sub">Open in Safari → Share → Add to Home Screen</div>
       </div>
       <div class="apk-arrow">↗</div>
     </a>
@@ -306,9 +387,54 @@
   <div class="footer">
     Built by <a href="https://github.com/Xion97522" target="_blank" rel="noopener">CrAzE / NELABEL</a>
     &nbsp;·&nbsp;
-    <a href="https://github.com/Xion97522/EnergyTV-2Beta" target="_blank" rel="noopener">Source on GitHub</a>
+    <a href="https://github.com/NRGTV/NRGTV" target="_blank" rel="noopener">Source on GitHub</a>
   </div>
 
 </div>
+<script>
+  (function () {
+    var PLATFORM_LABELS = {
+      linux: 'Linux',
+      mac: 'macOS',
+      windows: 'Windows',
+      android: 'Android',
+      ios: 'iOS'
+    };
+
+    function detectPlatform() {
+      var ua = navigator.userAgent || '';
+      var uaData = navigator.userAgentData;
+      var platform = (uaData && uaData.platform) || navigator.platform || '';
+
+      if (/android/i.test(ua)) return 'android';
+      if (/iphone|ipad|ipod/i.test(ua)) return 'ios';
+      // iPadOS 13+ identifies as "MacIntel" but exposes multi-touch
+      if (/mac/i.test(platform) && navigator.maxTouchPoints > 1) return 'ios';
+      if (/mac/i.test(platform) || /mac/i.test(ua)) return 'mac';
+      if (/win/i.test(platform) || /win/i.test(ua)) return 'windows';
+      if (/linux/i.test(platform) || (/linux/i.test(ua) && !/android/i.test(ua))) return 'linux';
+      return null;
+    }
+
+    var platform = detectPlatform();
+    if (!platform) return;
+
+    var card = document.getElementById('card-' + platform);
+    if (!card) return;
+
+    card.classList.add('recommended');
+
+    var cta = document.getElementById('detectCta');
+    document.getElementById('detectPlatformName').textContent = PLATFORM_LABELS[platform];
+
+    var btn = document.getElementById('detectCtaBtn');
+    var label = document.getElementById('detectCtaLabel');
+    btn.href = card.href;
+    btn.target = card.target || '_blank';
+    label.textContent = platform === 'ios' ? 'Open the app' : 'Download for ' + PLATFORM_LABELS[platform];
+
+    cta.classList.add('visible');
+  })();
+</script>
 </body>
 </html>
