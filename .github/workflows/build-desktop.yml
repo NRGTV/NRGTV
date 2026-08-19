@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile=false
 
-      - name: Build energy-tv
+      - name: Build NRG-TV
         working-directory: artifacts/energy-tv
         env:
           BASE_PATH: /
@@ -88,25 +88,25 @@ jobs:
           mkdir -p electron
           cat > electron/package.json << 'EOF'
           {
-            "name": "energy-tv-desktop",
-            "version": "1.0.0",
-            "description": "EnergyTV Desktop",
+            "name": "nrgtv-desktop",
+            "version": "11.0.0",
+            "description": "NRGTV Desktop",
             "main": "main.js",
             "author": {
-              "name": "CrAzE / NELABEL",
-              "email": "craze@nelabel.com"
+              "name": "NRGTV",
+              "email": "info@nrgtv.space"
             },
             "license": "MIT",
             "repository": {
               "type": "git",
-              "url": "https://github.com/Xion97522/EnergyTV-2Beta"
+              "url": "https://github.com/NRGTV/NRGTV"
             },
             "scripts": {
               "dist": "electron-builder"
             },
             "build": {
-              "appId": "com.craze.energytv",
-              "productName": "EnergyTV",
+              "appId": "com.nrgtv.nrgtv",
+              "productName": "NRGTV",
               "directories": {
                 "output": "dist-electron"
               },
@@ -147,7 +147,7 @@ jobs:
               height: 800,
               minWidth: 800,
               minHeight: 600,
-              title: 'EnergyTV',
+              title: 'NRGTV',
               webPreferences: {
                 preload: path.join(__dirname, 'preload.js'),
                 contextIsolation: true,
