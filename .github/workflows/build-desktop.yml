@@ -333,7 +333,6 @@ jobs:
     name: Publish Release
     needs: [build-electron, build-apk]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
 
     steps:
       - name: Download Electron artifacts
@@ -352,6 +351,9 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: build-${{ github.run_number }}
+          name: Build ${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
           files: release-assets/**/*
           generate_release_notes: true
         env:
