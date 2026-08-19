@@ -1,17 +1,48 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import {
-  Search, Bookmark, Home, Tv, Film, Menu, X, Settings, Zap, LogIn, LogOut, User, Gamepad2, MessagesSquare,
+  Search, Bookmark, Home, Tv, Film, Menu, X, Settings, Zap, LogIn, LogOut, User, Gamepad2, MessagesSquare, Download, Monitor, Apple, Smartphone,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+
+type Platform = "linux" | "mac" | "windows" | "android" | "ios";
+
+const REPO_RELEASES = "https://github.com/NRGTV/NRGTV/releases/latest";
+
+function detectPlatform(): Platform | null {
+  if (typeof navigator === "undefined") return null;
+  const ua = navigator.userAgent || "";
+  const uaData = (navigator as any).userAgentData;
+  const platform: string = uaData?.platform || navigator.platform || "";
+
+  if (/android/i.test(ua)) return "android";
+  if (/iphone|ipad|ipod/i.test(ua)) return "ios";
+  // iPadOS 13+ reports as "MacIntel" but exposes multi-touch
+  if (/mac/i.test(platform) && navigator.maxTouchPoints > 1) return "ios";
+  if (/mac/i.test(platform) || /mac/i.test(ua)) return "mac";
+  if (/win/i.test(platform) || /win/i.test(ua)) return "windows";
+  if (/linux/i.test(platform) || (/linux/i.test(ua) && !/android/i.test(ua))) return "linux";
+  return null;
+}
+
+const DOWNLOAD_OPTIONS: { id: Platform; label: string; sub: string; href: string; icon: typeof Monitor }[] = [
+  { id: "windows", label: "Windows", sub: ".exe installer · portable", href: REPO_RELEASES, icon: Monitor },
+  { id: "mac",     label: "macOS",   sub: ".dmg · .zip",               href: REPO_RELEASES, icon: Apple },
+  { id: "linux",   label: "Linux",   sub: ".deb · AppImage",           href: REPO_RELEASES, icon: Monitor },
+  { id: "android", label: "Android", sub: "APK — sideload",            href: REPO_RELEASES, icon: Smartphone },
+  { id: "ios",     label: "iPhone & iPad", sub: "Add to Home Screen in Safari", href: "https://nrgtv.space", icon: Smartphone },
+];
 
 export default function Navbar() {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+  const [downloadOpen, setDownloadOpen] = useState(false);
   const avatarRef = useRef<HTMLDivElement>(null);
+  const downloadRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLDivElement | null>(null);
   const { user, signOut } = useAuth();
+  const [detectedPlatform] = useState<Platform | null>(() => detectPlatform());
 
   const navItems = [
     { href: "/",          label: "Home",      icon: Home },
@@ -29,10 +60,80 @@ export default function Navbar() {
       if (avatarRef.current && !avatarRef.current.contains(e.target as Node)) {
         setAvatarMenuOpen(false);
       }
+      if (downloadRef.current && !downloadRef.current.contains(e.target as Node)) {
+        setDownloadOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
   }, []);
+
+  const DownloadMenu = () => (
+    <div className="relative" ref={downloadRef}>
+      <button
+        onClick={() => setDownloadOpen((v) => !v)}
+        className="hidden md:flex p-2 rounded-xl transition-all text-muted-foreground hover:text-foreground"
+        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}
+        onMouseEnter={(e) => { (e.currentTarget).style.background = "rgba(255,255,255,0.08)"; }}
+        onMouseLeave={(e) => { (e.currentTarget).style.background = "rgba(255,255,255,0.04)"; }}
+        aria-label="Download NRGTV"
+      >
+        <Download className="w-4 h-4" />
+      </button>
+
+      {downloadOpen && (
+        <div
+          className="absolute right-0 mt-2 w-64 rounded-2xl overflow-hidden z-50"
+          style={{
+            background: "rgba(10,12,18,0.96)",
+            border: "1px solid rgba(57,255,20,0.15)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(57,255,20,0.04)",
+            backdropFilter: "blur(24px)",
+          }}
+        >
+          <div className="px-4 py-3 border-b" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
+            <p className="text-xs font-semibold text-white">Download NRGTV</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Free on every platform</p>
+          </div>
+
+          <div className="py-1.5">
+            {DOWNLOAD_OPTIONS.map(({ id, label, sub, href, icon: Icon }) => {
+              const recommended = id === detectedPlatform;
+              return (
+                <a
+                  key={id}
+                  href={href}
+                  target={id === "ios" ? "_self" : "_blank"}
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2.5 px-4 py-2.5 transition-colors"
+                  style={{ background: recommended ? "rgba(57,255,20,0.06)" : "transparent" }}
+                  onMouseEnter={(e) => { (e.currentTarget).style.background = "rgba(255,255,255,0.05)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget).style.background = recommended ? "rgba(57,255,20,0.06)" : "transparent"; }}
+                  onClick={() => setDownloadOpen(false)}
+                >
+                  <Icon className="w-4 h-4 shrink-0" style={{ color: recommended ? "hsl(112,100%,54%)" : undefined }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm text-white">{label}</span>
+                      {recommended && (
+                        <span
+                          className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full"
+                          style={{ background: "hsl(112,100%,54%)", color: "#000" }}
+                        >
+                          You
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate">{sub}</p>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   const navHoverIn = (e: React.MouseEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
@@ -282,6 +383,8 @@ export default function Navbar() {
             </button>
           </Link>
 
+          <DownloadMenu />
+
           <div className="hidden md:flex">
             <AuthSection />
           </div>
@@ -357,6 +460,47 @@ export default function Navbar() {
                 <MessagesSquare className="w-5 h-5" /> Forum
               </div>
             </Link>
+
+            <div
+              className="mt-1 px-4 py-3 rounded-2xl"
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}
+            >
+              <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2.5">
+                <Download className="w-4 h-4" /> Download the app
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {DOWNLOAD_OPTIONS.map(({ id, label, sub, href, icon: Icon }) => {
+                  const recommended = id === detectedPlatform;
+                  return (
+                    <a
+                      key={id}
+                      href={href}
+                      target={id === "ios" ? "_self" : "_blank"}
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl"
+                      style={{ background: recommended ? "rgba(57,255,20,0.08)" : "transparent" }}
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" style={{ color: recommended ? "hsl(112,100%,54%)" : undefined }} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm text-white">{label}</span>
+                          {recommended && (
+                            <span
+                              className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full"
+                              style={{ background: "hsl(112,100%,54%)", color: "#000" }}
+                            >
+                              You
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">{sub}</p>
+                      </div>
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
 
             <div
               className="mt-2 px-4 py-3 rounded-2xl"
