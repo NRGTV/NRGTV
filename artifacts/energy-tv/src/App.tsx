@@ -12,6 +12,7 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
+import UpdateBanner from "@/components/UpdateBanner";
 import Home from "@/pages/Home";
 import Movies from "@/pages/Movies";
 import TVShows from "@/pages/TVShows";
@@ -31,6 +32,7 @@ function Router() {
   return (
     <>
       <Navbar />
+      <UpdateBanner />
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/movies" component={Movies} />
