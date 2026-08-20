@@ -150,7 +150,7 @@ export default function Settings() {
                 <span className="text-sm text-foreground font-medium">39</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Build</span>
+                <span className="text-sm text-muted-foreground">Platform</span>
                 <span className="text-sm text-foreground font-medium">Web</span>
               </div>
             </div>
