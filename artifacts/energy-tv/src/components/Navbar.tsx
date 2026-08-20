@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 
 type Platform = "linux" | "mac" | "windows" | "android" | "ios";
 
-const REPO_RELEASES = "https://github.com/NRGTV/NRGTV/releases/latest";
+const RELEASE_BASE = "https://github.com/NRGTV/NRGTV/releases/latest/download";
 
 function detectPlatform(): Platform | null {
   if (typeof navigator === "undefined") return null;
@@ -26,10 +26,10 @@ function detectPlatform(): Platform | null {
 }
 
 const DOWNLOAD_OPTIONS: { id: Platform; label: string; sub: string; href: string; icon: typeof Monitor }[] = [
-  { id: "windows", label: "Windows", sub: ".exe installer · portable", href: REPO_RELEASES, icon: Monitor },
-  { id: "mac",     label: "macOS",   sub: ".dmg · .zip",               href: REPO_RELEASES, icon: Apple },
-  { id: "linux",   label: "Linux",   sub: ".deb · AppImage",           href: REPO_RELEASES, icon: Monitor },
-  { id: "android", label: "Android", sub: "APK — sideload",            href: REPO_RELEASES, icon: Smartphone },
+  { id: "windows", label: "Windows", sub: ".exe installer · portable", href: `${RELEASE_BASE}/NRGTV-Setup.exe`, icon: Monitor },
+  { id: "mac",     label: "macOS",   sub: ".dmg",                      href: `${RELEASE_BASE}/NRGTV.dmg`,      icon: Apple },
+  { id: "linux",   label: "Linux",   sub: ".deb (AppImage on GitHub)", href: `${RELEASE_BASE}/NRGTV.deb`,      icon: Monitor },
+  { id: "android", label: "Android", sub: "APK — sideload",            href: `${RELEASE_BASE}/app-release.apk`, icon: Smartphone },
   { id: "ios",     label: "iPhone & iPad", sub: "Add to Home Screen in Safari", href: "https://nrgtv.space", icon: Smartphone },
 ];
 
@@ -103,7 +103,7 @@ export default function Navbar() {
                 <a
                   key={id}
                   href={href}
-                  target={id === "ios" ? "_self" : "_blank"}
+                  target="_self"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2.5 px-4 py-2.5 transition-colors"
                   style={{ background: recommended ? "rgba(57,255,20,0.06)" : "transparent" }}
@@ -475,7 +475,7 @@ export default function Navbar() {
                     <a
                       key={id}
                       href={href}
-                      target={id === "ios" ? "_self" : "_blank"}
+                      target="_self"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl"
                       style={{ background: recommended ? "rgba(57,255,20,0.08)" : "transparent" }}
