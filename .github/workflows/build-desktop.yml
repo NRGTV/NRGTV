@@ -36,6 +36,7 @@ jobs:
           VITE_TMDB_API_KEY: ${{ secrets.VITE_TMDB_API_KEY }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_APP_BUILD: ${{ github.run_number }}
         run: pnpm run build
 
       - name: Upload web dist
@@ -87,7 +88,7 @@ jobs:
           cat > electron/package.json << 'EOF'
           {
             "name": "nrgtv-desktop",
-            "version": "11.0.0",
+            "version": "1.0.${{ github.run_number }}",
             "description": "NRGTV Desktop",
             "main": "main.js",
             "author": {
@@ -113,8 +114,13 @@ jobs:
                 "preload.js",
                 "renderer/**/*"
               ],
+              "publish": {
+                "provider": "github",
+                "owner": "NRGTV",
+                "repo": "NRGTV"
+              },
               "linux": {
-                "target": ["deb"],
+                "target": ["deb", "AppImage"],
                 "category": "AudioVideo"
               },
               "mac": {
@@ -124,6 +130,9 @@ jobs:
               "win": {
                 "target": ["nsis"]
               }
+            },
+            "dependencies": {
+              "electron-updater": "^6.3.9"
             },
             "devDependencies": {
               "electron": "^31.0.0",
@@ -137,6 +146,7 @@ jobs:
         run: |
           cat > electron/main.js << 'EOF'
           const { app, BrowserWindow, session } = require('electron');
+          const { autoUpdater } = require('electron-updater');
           const path = require('path');
 
           function createWindow() {
@@ -216,6 +226,35 @@ jobs:
             app.on('activate', () => {
               if (BrowserWindow.getAllWindows().length === 0) createWindow();
             });
+
+            // Auto-update via electron-updater against GitHub Releases (see
+            // the "publish" block in package.json). Every push builds and
+            // publishes a new release, so this effectively means "always on
+            // the latest commit" for anyone who leaves the app open.
+            //
+            // NOTE: macOS auto-update (Squirrel.Mac) requires the app to be
+            // code-signed and notarized — we don't have an Apple developer
+            // cert, so it's skipped there. Mac users still get new builds,
+            // just via a manual download from nrgtv.space/download.
+            if (process.platform !== 'darwin') {
+              autoUpdater.autoDownload = true;
+              autoUpdater.autoInstallOnAppQuit = true;
+
+              autoUpdater.on('error', (err) => {
+                console.log(`[NRGTV] Updater error: ${err == null ? 'unknown' : err.toString()}`);
+              });
+              autoUpdater.on('update-available', (info) => {
+                console.log(`[NRGTV] Update available: ${info.version}`);
+              });
+              autoUpdater.on('update-downloaded', (info) => {
+                console.log(`[NRGTV] Update downloaded: ${info.version} — will install on quit`);
+              });
+
+              autoUpdater.checkForUpdatesAndNotify();
+              // Re-check periodically for anyone who leaves the app open a
+              // long time (every 4 hours).
+              setInterval(() => autoUpdater.checkForUpdatesAndNotify(), 4 * 60 * 60 * 1000);
+            }
           });
 
           app.on('window-all-closed', () => {
@@ -248,8 +287,11 @@ jobs:
           name: electron-${{ matrix.os-label }}
           path: |
             electron/dist-electron/**/*.deb
+            electron/dist-electron/**/*.AppImage
             electron/dist-electron/**/*.dmg
             electron/dist-electron/**/*.exe
+            electron/dist-electron/**/*.blockmap
+            electron/dist-electron/latest*.yml
           if-no-files-found: warn
 
   # ─────────────────────────────────────────────────────────
@@ -287,7 +329,7 @@ jobs:
           cat > capacitor-app/package.json << 'EOF'
           {
             "name": "nrg-tv-android",
-            "version": "1.0.0",
+            "version": "1.0.${{ github.run_number }}",
             "dependencies": {
               "@capacitor/android": "^6.0.0",
               "@capacitor/cli": "^6.0.0",
