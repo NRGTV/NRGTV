@@ -4,10 +4,22 @@ import {
   Search, Bookmark, Home, Tv, Film, Menu, X, Settings, Zap, LogIn, LogOut, User, Gamepad2, MessagesSquare, Download, Monitor, Apple, Smartphone,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { isNativeApp } from "@/lib/platform";
 
 type Platform = "linux" | "mac" | "windows" | "android" | "ios";
 
-const RELEASE_BASE = "https://github.com/NRGTV/NRGTV/releases/latest/download";
+const RELEASE_PAGE = "https://github.com/NRGTV/NRGTV/releases/latest";
+
+// electron-builder embeds the version in every filename (e.g.
+// "NRGTV.Setup.1.0.39.exe"), so there's no fixed name to link to directly.
+// Instead, fetch the real asset URLs from the latest release at runtime and
+// match by extension — self-heals no matter what the filename looks like.
+const ASSET_EXT_MATCHERS: Partial<Record<Platform, RegExp>> = {
+  windows: /\.exe$/i,
+  mac: /\.dmg$/i,
+  linux: /\.deb$/i,
+  android: /\.apk$/i,
+};
 
 function detectPlatform(): Platform | null {
   if (typeof navigator === "undefined") return null;
@@ -26,10 +38,10 @@ function detectPlatform(): Platform | null {
 }
 
 const DOWNLOAD_OPTIONS: { id: Platform; label: string; sub: string; href: string; icon: typeof Monitor }[] = [
-  { id: "windows", label: "Windows", sub: ".exe installer · portable", href: `${RELEASE_BASE}/NRGTV-Setup.exe`, icon: Monitor },
-  { id: "mac",     label: "macOS",   sub: ".dmg",                      href: `${RELEASE_BASE}/NRGTV.dmg`,      icon: Apple },
-  { id: "linux",   label: "Linux",   sub: ".deb (AppImage on GitHub)", href: `${RELEASE_BASE}/NRGTV.deb`,      icon: Monitor },
-  { id: "android", label: "Android", sub: "APK — sideload",            href: `${RELEASE_BASE}/app-release.apk`, icon: Smartphone },
+  { id: "windows", label: "Windows", sub: ".exe installer · portable", href: RELEASE_PAGE, icon: Monitor },
+  { id: "mac",     label: "macOS",   sub: ".dmg",                      href: RELEASE_PAGE, icon: Apple },
+  { id: "linux",   label: "Linux",   sub: ".deb (AppImage on GitHub)", href: RELEASE_PAGE, icon: Monitor },
+  { id: "android", label: "Android", sub: "APK — sideload",            href: RELEASE_PAGE, icon: Smartphone },
   { id: "ios",     label: "iPhone & iPad", sub: "Add to Home Screen in Safari", href: "https://nrgtv.space", icon: Smartphone },
 ];
 
@@ -43,6 +55,32 @@ export default function Navbar() {
   const navRef = useRef<HTMLDivElement | null>(null);
   const { user, signOut } = useAuth();
   const [detectedPlatform] = useState<Platform | null>(() => detectPlatform());
+  // Only the web/PWA build should offer "download other platforms" — the
+  // packaged desktop/Android apps are already the download.
+  const [showDownload] = useState(() => !isNativeApp());
+  const [assetLinks, setAssetLinks] = useState<Partial<Record<Platform, string>>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("https://api.github.com/repos/NRGTV/NRGTV/releases/latest")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { assets?: { name: string; browser_download_url: string }[] } | null) => {
+        if (cancelled || !data?.assets) return;
+        const links: Partial<Record<Platform, string>> = {};
+        (Object.keys(ASSET_EXT_MATCHERS) as Platform[]).forEach((id) => {
+          const matcher = ASSET_EXT_MATCHERS[id]!;
+          const match = data.assets!.find((a) => matcher.test(a.name));
+          if (match) links[id] = match.browser_download_url;
+        });
+        setAssetLinks(links);
+      })
+      .catch(() => {
+        // offline/rate-limited — DOWNLOAD_OPTIONS' releases-page href stands as fallback
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const navItems = [
     { href: "/",          label: "Home",      icon: Home },
@@ -99,10 +137,11 @@ export default function Navbar() {
           <div className="py-1.5">
             {DOWNLOAD_OPTIONS.map(({ id, label, sub, href, icon: Icon }) => {
               const recommended = id === detectedPlatform;
+              const resolvedHref = assetLinks[id] ?? href;
               return (
                 <a
                   key={id}
-                  href={href}
+                  href={resolvedHref}
                   target="_self"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2.5 px-4 py-2.5 transition-colors"
@@ -383,7 +422,7 @@ export default function Navbar() {
             </button>
           </Link>
 
-          <DownloadMenu />
+          {showDownload && <DownloadMenu />}
 
           <div className="hidden md:flex">
             <AuthSection />
@@ -461,46 +500,49 @@ export default function Navbar() {
               </div>
             </Link>
 
-            <div
-              className="mt-1 px-4 py-3 rounded-2xl"
-              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}
-            >
-              <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2.5">
-                <Download className="w-4 h-4" /> Download the app
-              </p>
-              <div className="flex flex-col gap-1.5">
-                {DOWNLOAD_OPTIONS.map(({ id, label, sub, href, icon: Icon }) => {
-                  const recommended = id === detectedPlatform;
-                  return (
-                    <a
-                      key={id}
-                      href={href}
-                      target="_self"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl"
-                      style={{ background: recommended ? "rgba(57,255,20,0.08)" : "transparent" }}
-                      onClick={() => setMobileOpen(false)}
-                    >
-                      <Icon className="w-4 h-4 shrink-0" style={{ color: recommended ? "hsl(112,100%,54%)" : undefined }} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-sm text-white">{label}</span>
-                          {recommended && (
-                            <span
-                              className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full"
-                              style={{ background: "hsl(112,100%,54%)", color: "#000" }}
-                            >
-                              You
-                            </span>
-                          )}
+            {showDownload && (
+              <div
+                className="mt-1 px-4 py-3 rounded-2xl"
+                style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}
+              >
+                <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2.5">
+                  <Download className="w-4 h-4" /> Download the app
+                </p>
+                <div className="flex flex-col gap-1.5">
+                  {DOWNLOAD_OPTIONS.map(({ id, label, sub, href, icon: Icon }) => {
+                    const recommended = id === detectedPlatform;
+                    const resolvedHref = assetLinks[id] ?? href;
+                    return (
+                      <a
+                        key={id}
+                        href={resolvedHref}
+                        target="_self"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl"
+                        style={{ background: recommended ? "rgba(57,255,20,0.08)" : "transparent" }}
+                        onClick={() => setMobileOpen(false)}
+                      >
+                        <Icon className="w-4 h-4 shrink-0" style={{ color: recommended ? "hsl(112,100%,54%)" : undefined }} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm text-white">{label}</span>
+                            {recommended && (
+                              <span
+                                className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full"
+                                style={{ background: "hsl(112,100%,54%)", color: "#000" }}
+                              >
+                                You
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground truncate">{sub}</p>
                         </div>
-                        <p className="text-[11px] text-muted-foreground truncate">{sub}</p>
-                      </div>
-                    </a>
-                  );
-                })}
+                      </a>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             <div
               className="mt-2 px-4 py-3 rounded-2xl"
