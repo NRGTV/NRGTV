@@ -15,6 +15,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import UpdateBanner from "@/components/UpdateBanner";
 import LoadingScreen from "@/components/LoadingScreen";
+import AmbientBootSound from "@/components/AmbientBootSound";
 import Home from "@/pages/Home";
 import Movies from "@/pages/Movies";
 import TVShows from "@/pages/TVShows";
@@ -61,6 +62,7 @@ function App() {
       <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
         <AuthProvider>
           <Router />
+          <AmbientBootSound />
           {booting && <LoadingScreen onFinish={() => setBooting(false)} />}
         </AuthProvider>
       </WouterRouter>
