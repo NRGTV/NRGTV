@@ -121,14 +121,17 @@ jobs:
               },
               "linux": {
                 "target": ["deb", "AppImage"],
-                "category": "AudioVideo"
+                "category": "AudioVideo",
+                "artifactName": "NRGTV.${ext}"
               },
               "mac": {
                 "target": ["dmg"],
-                "category": "public.app-category.entertainment"
+                "category": "public.app-category.entertainment",
+                "artifactName": "NRGTV.${ext}"
               },
               "win": {
-                "target": ["nsis"]
+                "target": ["nsis"],
+                "artifactName": "NRGTV-Setup.${ext}"
               }
             },
             "dependencies": {
