@@ -281,3 +281,8 @@ iframe {
 .loading-screen-logo {
   animation: logo-spin 2.4s linear infinite, logo-pulse 2.4s ease-in-out infinite;
 }
+
+/* ─── Bottom tab bar clearance (Android/iOS only, see BottomTabBar.tsx) ── */
+body.has-bottom-nav {
+  padding-bottom: calc(58px + env(safe-area-inset-bottom));
+}
