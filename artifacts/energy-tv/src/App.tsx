@@ -8,11 +8,13 @@
  *  + Wrap everything in <AuthProvider>
  */
 
+import { useState } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import UpdateBanner from "@/components/UpdateBanner";
+import LoadingScreen from "@/components/LoadingScreen";
 import Home from "@/pages/Home";
 import Movies from "@/pages/Movies";
 import TVShows from "@/pages/TVShows";
@@ -52,11 +54,14 @@ function Router() {
 }
 
 function App() {
+  const [booting, setBooting] = useState(true);
+
   return (
     <QueryClientProvider client={queryClient}>
       <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
         <AuthProvider>
           <Router />
+          {booting && <LoadingScreen onFinish={() => setBooting(false)} />}
         </AuthProvider>
       </WouterRouter>
     </QueryClientProvider>
