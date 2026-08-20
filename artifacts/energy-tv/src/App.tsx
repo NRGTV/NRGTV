@@ -13,6 +13,7 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
+import BottomTabBar from "@/components/BottomTabBar";
 import UpdateBanner from "@/components/UpdateBanner";
 import LoadingScreen from "@/components/LoadingScreen";
 import AmbientBootSound from "@/components/AmbientBootSound";
@@ -35,6 +36,7 @@ function Router() {
   return (
     <>
       <Navbar />
+      <BottomTabBar />
       <UpdateBanner />
       <Switch>
         <Route path="/" component={Home} />
