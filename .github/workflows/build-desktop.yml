@@ -163,6 +163,11 @@ jobs:
                 preload: path.join(__dirname, 'preload.js'),
                 contextIsolation: true,
                 nodeIntegration: false,
+                // The boot loading screen plays a sound effect immediately
+                // on mount, before any user gesture — Chromium blocks that
+                // by default. This is a local packaged app, not a random
+                // website, so it's safe to relax that here.
+                autoplayPolicy: 'no-user-gesture-required',
               },
             });
 
