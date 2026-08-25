@@ -163,7 +163,7 @@ export default function SignIn() {
               NRG<span style={{ color: "hsl(112,100%,54%)" }}>TV</span>
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Stream with the world's most electrifying content
+              Watch Free Movies & TV
             </p>
           </div>
         </div>
@@ -231,7 +231,7 @@ export default function SignIn() {
             className="w-full py-3 rounded-xl text-sm font-semibold"
             style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", color: "white" }}
           >
-            Continue with Google
+            Google
           </button>
           <button
             onClick={() => handleOAuth("github")}
@@ -239,7 +239,7 @@ export default function SignIn() {
             className="w-full py-3 rounded-xl text-sm font-semibold"
             style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", color: "white" }}
           >
-            Continue with GitHub
+            GitHub
           </button>
         </div>
 
