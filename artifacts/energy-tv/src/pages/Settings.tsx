@@ -147,7 +147,7 @@ export default function Settings() {
             <div className="px-4 py-3 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Build</span>
-                <span className="text-sm text-foreground font-medium">39</span>
+                <span className="text-sm text-foreground font-medium">60</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Platform</span>
@@ -160,7 +160,7 @@ export default function Settings() {
             >
               <Zap className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(112,100%,54%)" }} />
               <p className="text-xs text-muted-foreground leading-relaxed">
-                NRGTV is a web streaming interface. Content metadata is sourced from TMDB. Images © The Movie Database (TMDB).
+                NRGTV is a web streaming interface. Metadata is sourced from TMBD, while the media itself is sourced by third party sites
               </p>
             </div>
           </Section>
