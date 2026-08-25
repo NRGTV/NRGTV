@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 // Lower, atmospheric level rather than a full-blast sound effect.
-const TARGET_VOLUME = 0.35;
+const TARGET_VOLUME = 0.15;
 const FADE_IN_MS = 500;
 const FADE_OUT_MS = 900; // fades out over the tail of the clip instead of cutting off
 
