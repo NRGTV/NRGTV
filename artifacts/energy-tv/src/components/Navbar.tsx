@@ -53,7 +53,7 @@ export default function Navbar() {
   const avatarRef = useRef<HTMLDivElement>(null);
   const downloadRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLDivElement | null>(null);
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const [detectedPlatform] = useState<Platform | null>(() => detectPlatform());
   // Only the web/PWA build should offer "download other platforms" — the
   // packaged desktop/Android apps are already the download.
@@ -190,7 +190,25 @@ export default function Navbar() {
       const initial = (user.email ?? "?")[0].toUpperCase();
 
       return (
-        <div className="relative" ref={mobile ? undefined : avatarRef}>
+        <div className="relative flex items-center gap-1.5" ref={mobile ? undefined : avatarRef}>
+          {/* Clicking the picture itself goes straight to the public profile page */}
+          <Link href={profile?.username ? `/u/${profile.username}` : "/settings"}>
+            <div
+              className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-xs font-black text-black cursor-pointer"
+              style={{
+                background: "linear-gradient(135deg, hsl(112,100%,54%), hsl(112,100%,38%))",
+                border: "1.5px solid rgba(57,255,20,0.5)",
+              }}
+              aria-label="View profile"
+            >
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                initial
+              )}
+            </div>
+          </Link>
+
           <button
             onClick={() => setAvatarMenuOpen((v) => !v)}
             className="flex items-center gap-2 rounded-2xl px-2 py-1.5 transition-all"
@@ -198,20 +216,11 @@ export default function Navbar() {
               background: "rgba(255,255,255,0.05)",
               border: "1px solid rgba(255,255,255,0.08)",
             }}
+            aria-label="Account menu"
           >
-            {/* Initial avatar */}
-            <div
-              className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black text-black"
-              style={{
-                background: "linear-gradient(135deg, hsl(112,100%,54%), hsl(112,100%,38%))",
-                border: "1.5px solid rgba(57,255,20,0.5)",
-              }}
-            >
-              {initial}
-            </div>
             {mobile && (
               <span className="text-sm font-medium text-white truncate max-w-[140px]">
-                {user.email}
+                {profile?.display_name || user.email}
               </span>
             )}
           </button>
@@ -231,6 +240,20 @@ export default function Navbar() {
               </div>
 
               <div className="py-1.5">
+                {profile?.username && (
+                  <Link href={`/u/${profile.username}`}>
+                    <button
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-muted-foreground hover:text-white transition-colors"
+                      onClick={() => setAvatarMenuOpen(false)}
+                      style={{ background: "transparent" }}
+                      onMouseEnter={(e) => { (e.currentTarget).style.background = "rgba(255,255,255,0.05)"; }}
+                      onMouseLeave={(e) => { (e.currentTarget).style.background = "transparent"; }}
+                    >
+                      <User className="w-4 h-4" /> View Profile
+                    </button>
+                  </Link>
+                )}
+
                 <Link href="/settings">
                   <button
                     className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-muted-foreground hover:text-white transition-colors"
@@ -239,7 +262,7 @@ export default function Navbar() {
                     onMouseEnter={(e) => { (e.currentTarget).style.background = "rgba(255,255,255,0.05)"; }}
                     onMouseLeave={(e) => { (e.currentTarget).style.background = "transparent"; }}
                   >
-                    <User className="w-4 h-4" /> Profile &amp; Settings
+                    <Settings className="w-4 h-4" /> Account Settings
                   </button>
                 </Link>
 
