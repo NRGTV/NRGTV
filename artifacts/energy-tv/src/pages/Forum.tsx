@@ -38,6 +38,7 @@ import {
   type ForumThreadSummary,
 } from "@/hooks/useForum";
 import { useAuth } from "@/context/AuthContext";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 function timeAgo(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -132,8 +133,21 @@ function ThreadRow({ thread }: { thread: ForumThreadSummary }) {
             {thread.locked && <Lock className="w-3 h-3 text-muted-foreground/50" />}
             <h4 className="text-sm font-semibold text-foreground truncate">{thread.title}</h4>
           </div>
-          <p className="text-xs text-muted-foreground/50">
-            {thread.category_id} · started by <span className="text-muted-foreground/70">{thread.author_name}</span>
+          <p className="text-xs text-muted-foreground/50 flex items-center gap-1">
+            {thread.category_id} · started by{" "}
+            {thread.author?.username ? (
+              <Link href={`/u/${thread.author.username}`} onClick={(e) => e.stopPropagation()}>
+                <span className="text-muted-foreground/70 hover:text-foreground inline-flex items-center">
+                  {thread.author.display_name || thread.author.username}
+                  <VerifiedBadge
+                    isVerified={thread.author.is_verified}
+                    type={thread.author.verified_type ?? undefined}
+                  />
+                </span>
+              </Link>
+            ) : (
+              <span className="text-muted-foreground/70">{thread.author_name}</span>
+            )}
           </p>
         </div>
 

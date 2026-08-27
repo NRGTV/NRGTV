@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useForumThread, useCreateReply, type ForumPost } from "@/hooks/useForum";
 import { useAuth } from "@/context/AuthContext";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 const NEON = "hsl(112,100%,54%)";
 
@@ -37,7 +38,25 @@ function timeAgo(iso: string): string {
 }
 
 function PostCard({ post }: { post: ForumPost }) {
-  const initial = post.author_name[0]?.toUpperCase() ?? "?";
+  const displayName = post.author?.display_name || post.author?.username || post.author_name;
+  const initial = displayName[0]?.toUpperCase() ?? "?";
+
+  const AuthorAvatar = () => (
+    <div
+      className="w-8 h-8 shrink-0 rounded-full overflow-hidden flex items-center justify-center text-xs font-black text-black"
+      style={{
+        background: "linear-gradient(135deg, hsl(112,100%,54%), hsl(112,100%,38%))",
+        border: "1.5px solid rgba(57,255,20,0.5)",
+      }}
+    >
+      {post.author?.avatar_url ? (
+        <img src={post.author.avatar_url} alt="" className="w-full h-full object-cover" />
+      ) : (
+        initial
+      )}
+    </div>
+  );
+
   return (
     <div
       className="rounded-2xl p-4"
@@ -47,19 +66,26 @@ function PostCard({ post }: { post: ForumPost }) {
       }}
     >
       <div className="flex items-start gap-3">
-        <div
-          className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-xs font-black text-black"
-          style={{
-            background: "linear-gradient(135deg, hsl(112,100%,54%), hsl(112,100%,38%))",
-            border: "1.5px solid rgba(57,255,20,0.5)",
-          }}
-        >
-          {initial}
-        </div>
+        {post.author?.username ? (
+          <Link href={`/u/${post.author.username}`}>
+            <AuthorAvatar />
+          </Link>
+        ) : (
+          <AuthorAvatar />
+        )}
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm font-bold text-foreground">{post.author_name}</span>
+            {post.author?.username ? (
+              <Link href={`/u/${post.author.username}`}>
+                <span className="text-sm font-bold text-foreground hover:underline inline-flex items-center">
+                  {displayName}
+                  <VerifiedBadge isVerified={post.author.is_verified} type={post.author.verified_type ?? undefined} />
+                </span>
+              </Link>
+            ) : (
+              <span className="text-sm font-bold text-foreground">{displayName}</span>
+            )}
             {post.is_original && (
               <span
                 className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
@@ -126,7 +152,22 @@ export default function ForumThread() {
             <div className="flex items-center gap-2 mb-6 text-xs text-muted-foreground/50">
               <span>{thread.data.category_id}</span>
               <span>·</span>
-              <span>started by {thread.data.author_name}</span>
+              <span className="flex items-center gap-1">
+                started by{" "}
+                {thread.data.author?.username ? (
+                  <Link href={`/u/${thread.data.author.username}`}>
+                    <span className="hover:text-foreground inline-flex items-center">
+                      {thread.data.author.display_name || thread.data.author.username}
+                      <VerifiedBadge
+                        isVerified={thread.data.author.is_verified}
+                        type={thread.data.author.verified_type ?? undefined}
+                      />
+                    </span>
+                  </Link>
+                ) : (
+                  thread.data.author_name
+                )}
+              </span>
             </div>
           </>
         )}
