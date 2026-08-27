@@ -25,11 +25,20 @@ export interface ForumCategory {
   postCount?: number;
 }
 
+export interface ForumAuthor {
+  username: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  is_verified: boolean;
+  verified_type: string | null;
+}
+
 export interface ForumThreadSummary {
   id: string;
   title: string;
   category_id: string;
   author_name: string;
+  author?: ForumAuthor | null;
   views: number;
   pinned: boolean;
   locked: boolean;
@@ -41,6 +50,7 @@ export interface ForumPost {
   id: string;
   thread_id: string;
   author_name: string;
+  author?: ForumAuthor | null;
   body: string;
   is_original: boolean;
   likes: number;
@@ -88,7 +98,9 @@ export function useForumThreads(categoryId?: string) {
     queryFn: async () => {
       let query = supabase
         .from("forum_threads")
-        .select("*, forum_posts(count)")
+        .select(
+          "*, author:profiles!author_id(username, display_name, avatar_url, is_verified, verified_type), forum_posts(count)"
+        )
         .order("pinned", { ascending: false })
         .order("last_activity_at", { ascending: false })
         .limit(50);
@@ -115,7 +127,7 @@ export function useForumThread(threadId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("forum_threads")
-        .select("*")
+        .select("*, author:profiles!author_id(username, display_name, avatar_url, is_verified, verified_type)")
         .eq("id", threadId)
         .single();
       if (error) throw error;
@@ -129,7 +141,7 @@ export function useForumThread(threadId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("forum_posts")
-        .select("*")
+        .select("*, author:profiles!author_id(username, display_name, avatar_url, is_verified, verified_type)")
         .eq("thread_id", threadId)
         .order("created_at", { ascending: true });
       if (error) throw error;
@@ -140,10 +152,43 @@ export function useForumThread(threadId: string | undefined) {
   return { thread: threadQuery, posts: postsQuery };
 }
 
+// ─── A user's posts (for their profile page) ──────────────────
+
+export interface ForumUserPost {
+  id: string;
+  thread_id: string;
+  body: string;
+  is_original: boolean;
+  created_at: string;
+  thread: {
+    id: string;
+    title: string;
+    category_id: string;
+  } | null;
+}
+
+export function useUserForumPosts(userId: string | undefined) {
+  return useQuery<ForumUserPost[]>({
+    queryKey: ["forum", "user-posts", userId],
+    enabled: !!userId,
+    staleTime: STALE,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("forum_posts")
+        .select("id, thread_id, body, is_original, created_at, thread:forum_threads!thread_id(id, title, category_id)")
+        .eq("author_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return (data ?? []) as unknown as ForumUserPost[];
+    },
+  });
+}
+
 // ─── Mutations ──────────────────────────────────────────────
 
 export function useCreateThread() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -157,7 +202,7 @@ export function useCreateThread() {
       body: string;
     }) => {
       if (!user) throw new Error("Must be signed in to post");
-      const authorName = user.email?.split("@")[0] ?? "user";
+      const authorName = profile?.username ?? user.email?.split("@")[0] ?? "user";
 
       const { data: thread, error: threadError } = await supabase
         .from("forum_threads")
@@ -186,13 +231,13 @@ export function useCreateThread() {
 }
 
 export function useCreateReply(threadId: string) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (body: string) => {
       if (!user) throw new Error("Must be signed in to reply");
-      const authorName = user.email?.split("@")[0] ?? "user";
+      const authorName = profile?.username ?? user.email?.split("@")[0] ?? "user";
 
       const { error } = await supabase.from("forum_posts").insert({
         thread_id: threadId,
