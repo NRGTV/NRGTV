@@ -13,7 +13,7 @@ const anonSupabase = createClient(
   process.env.SUPABASE_ANON_KEY!
 );
 
-const ADMIN_USER_IDS = ["your-own-uid-here"]; // swap for a real allowlist / roles table later
+const ADMIN_USER_IDS = ["261b0b26-47db-47d3-9d1b-b772fada8996"]; // swap for a real allowlist / roles table later
 
 const router: IRouter = Router();
 
