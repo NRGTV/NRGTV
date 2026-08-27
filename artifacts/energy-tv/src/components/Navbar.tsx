@@ -192,7 +192,7 @@ export default function Navbar() {
       return (
         <div className="relative flex items-center gap-1.5" ref={mobile ? undefined : avatarRef}>
           {/* Clicking the picture itself goes straight to the public profile page */}
-          <Link href={profile?.username ? `/u/${profile?.username}` : "/u/${profile?.username}"}>
+          <Link href={profile?.username ? `/u/${profile?.username}` : "/profile"}>
             <div
               className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-xs font-black text-black cursor-pointer"
               style={{
