@@ -336,22 +336,21 @@ export default function Navbar() {
         }}
       >
         {/* Logo */}
-        <Link href="/">
-          <div className="flex items-center gap-2 cursor-pointer select-none">
-            <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center"
-              style={{
-                background: "linear-gradient(145deg, hsl(112,100%,54%), hsl(112,100%,34%))",
-                boxShadow: "0 0 12px rgba(57,255,20,0.5), inset 0 1px 0 rgba(255,255,255,0.25)",
-              }}
-            >
-              <Zap className="w-4 h-4 text-black fill-black" />
-            </div>
-            <span className="text-foreground font-black text-lg tracking-tight">
-              NRG<span style={{ color: "hsl(112,100%,54%)" }}>TV</span>
-            </span>
-          </div>
-        </Link>
+<Link href="/">
+  <div className="flex items-center gap-2 cursor-pointer select-none">
+    <img
+      src="/pwa-512.png"
+      alt="NRGTV logo"
+      className="w-8 h-8 rounded-xl object-cover"
+      style={{
+        boxShadow: "0 0 12px rgba(57,255,20,0.5), inset 0 1px 0 rgba(255,255,255,0.25)",
+      }}
+    />
+    <span className="text-foreground font-black text-lg tracking-tight">
+      NRG<span style={{ color: "hsl(112,100%,54%)" }}>TV</span>
+    </span>
+  </div>
+</Link>
 
         {/* Desktop nav */}
         <div ref={navRef} className="hidden md:flex items-center gap-1">
