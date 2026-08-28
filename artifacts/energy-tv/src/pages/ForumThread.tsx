@@ -12,6 +12,9 @@ import {
   ArrowLeft,
   ThumbsUp,
   Send,
+  Paperclip,
+  X,
+  FileText,
 } from "lucide-react";
 import { useForumThread, useCreateReply, type ForumPost } from "@/hooks/useForum";
 import { useAuth } from "@/context/AuthContext";
@@ -101,6 +104,35 @@ function PostCard({ post }: { post: ForumPost }) {
             {post.body}
           </p>
 
+          {post.attachments?.length > 0 && (
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              {post.attachments.map((att, i) =>
+                att.type.startsWith("image/") ? (
+                  <a key={i} href={att.url} target="_blank" rel="noreferrer">
+                    <img
+                      src={att.url}
+                      alt={att.name}
+                      className="max-h-48 rounded-lg object-cover"
+                      style={{ border: "1px solid rgba(255,255,255,0.08)" }}
+                    />
+                  </a>
+                ) : (
+                  <a
+                    key={i}
+                    href={att.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-muted-foreground/80 hover:text-foreground transition-colors"
+                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+                  >
+                    <FileText className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate max-w-[160px]">{att.name}</span>
+                  </a>
+                )
+              )}
+            </div>
+          )}
+
           <button
             className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground/50 hover:text-[hsl(112,100%,54%)] transition-colors"
           >
@@ -119,11 +151,13 @@ export default function ForumThread() {
   const { thread, posts } = useForumThread(id);
   const createReply = useCreateReply(id ?? "");
   const [reply, setReply] = useState("");
+  const [replyFiles, setReplyFiles] = useState<File[]>([]);
 
   const handleSubmit = async () => {
     if (!reply.trim()) return;
-    await createReply.mutateAsync(reply);
+    await createReply.mutateAsync({ body: reply, files: replyFiles });
     setReply("");
+    setReplyFiles([]);
   };
 
   return (
@@ -206,7 +240,41 @@ export default function ForumThread() {
                 {(createReply.error as Error)?.message ?? "Failed to post reply"}
               </p>
             )}
-            <div className="flex justify-end mt-3">
+
+            {replyFiles.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2.5">
+                {replyFiles.map((f, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs text-muted-foreground"
+                    style={{ background: "rgba(255,255,255,0.05)" }}
+                  >
+                    <span className="truncate max-w-[140px]">{f.name}</span>
+                    <button onClick={() => setReplyFiles((prev) => prev.filter((_, idx) => idx !== i))}>
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between mt-3">
+              <label
+                className={`flex items-center gap-1.5 text-xs transition-colors ${
+                  user ? "text-muted-foreground/70 hover:text-foreground cursor-pointer" : "text-muted-foreground/30"
+                }`}
+              >
+                <Paperclip className="w-3.5 h-3.5" />
+                Attach files
+                <input
+                  type="file"
+                  multiple
+                  disabled={!user}
+                  className="hidden"
+                  onChange={(e) => setReplyFiles((prev) => [...prev, ...Array.from(e.target.files ?? [])])}
+                />
+              </label>
+
               <button
                 onClick={handleSubmit}
                 disabled={!user || !reply.trim() || createReply.isPending}
@@ -226,4 +294,4 @@ export default function ForumThread() {
       </div>
     </div>
   );
-}
+                                                                                  }
