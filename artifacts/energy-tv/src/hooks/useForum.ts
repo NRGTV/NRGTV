@@ -11,6 +11,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { uploadForumAttachment } from "@/lib/uploads";
 
 const STALE = 60 * 1000;
 
@@ -46,6 +47,13 @@ export interface ForumThreadSummary {
   replies?: number;
 }
 
+export interface ForumAttachment {
+  url: string;
+  name: string;
+  type: string;
+  size: number;
+}
+
 export interface ForumPost {
   id: string;
   thread_id: string;
@@ -54,6 +62,7 @@ export interface ForumPost {
   body: string;
   is_original: boolean;
   likes: number;
+  attachments: ForumAttachment[];
   created_at: string;
 }
 
@@ -160,6 +169,7 @@ export interface ForumUserPost {
   body: string;
   is_original: boolean;
   created_at: string;
+  attachments: ForumAttachment[];
   thread: {
     id: string;
     title: string;
@@ -175,7 +185,7 @@ export function useUserForumPosts(userId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("forum_posts")
-        .select("id, thread_id, body, is_original, created_at, thread:forum_threads!thread_id(id, title, category_id)")
+        .select("id, thread_id, body, is_original, attachments, created_at, thread:forum_threads!thread_id(id, title, category_id)")
         .eq("author_id", userId)
         .order("created_at", { ascending: false })
         .limit(20);
@@ -196,13 +206,19 @@ export function useCreateThread() {
       categoryId,
       title,
       body,
+      files,
     }: {
       categoryId: string;
       title: string;
       body: string;
+      files?: File[];
     }) => {
       if (!user) throw new Error("Must be signed in to post");
       const authorName = profile?.username ?? user.email?.split("@")[0] ?? "user";
+
+      const attachments = files?.length
+        ? await Promise.all(files.map((f) => uploadForumAttachment(user.id, f)))
+        : [];
 
       const { data: thread, error: threadError } = await supabase
         .from("forum_threads")
@@ -219,6 +235,7 @@ export function useCreateThread() {
           author_name: authorName,
           body,
           is_original: true,
+          attachments,
         });
       if (postError) throw postError;
 
@@ -235,9 +252,13 @@ export function useCreateReply(threadId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (body: string) => {
+    mutationFn: async ({ body, files }: { body: string; files?: File[] }) => {
       if (!user) throw new Error("Must be signed in to reply");
       const authorName = profile?.username ?? user.email?.split("@")[0] ?? "user";
+
+      const attachments = files?.length
+        ? await Promise.all(files.map((f) => uploadForumAttachment(user.id, f)))
+        : [];
 
       const { error } = await supabase.from("forum_posts").insert({
         thread_id: threadId,
@@ -245,6 +266,7 @@ export function useCreateReply(threadId: string) {
         author_name: authorName,
         body,
         is_original: false,
+        attachments,
       });
       if (error) throw error;
     },
