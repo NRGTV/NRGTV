@@ -40,6 +40,18 @@
     <link rel="icon" type="image/x-icon" sizes="any" href="./favicon.ico" />
     <link rel="shortcut icon" href="./favicon.ico" />
 
+    <!--
+      Restricts which origins can be loaded in an iframe on this page —
+      the browser refuses to even request anything outside this list.
+      Only vidlink.pro is used as a player source now (see SOURCES in
+      PlayerModal.tsx); the other free-embed aggregators were dropped
+      since they gate playback behind ad popups.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="frame-src 'self' https://vidlink.pro https://*.vidlink.pro https://*.tmdb.org https://*.themoviedb.org;"
+    />
+
     <!-- Fonts -->
     <style>
       @font-face {
