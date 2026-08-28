@@ -27,6 +27,7 @@ import Detail from "@/pages/Detail";
 import Settings from "@/pages/Settings";
 import SignIn from "@/pages/SignIn";
 import Profile from "@/pages/Profile";
+import EditProfile from "@/pages/EditProfile";
 import Forum from "@/pages/Forum";
 import ForumThread from "@/pages/ForumThread";
 import NotFound from "@/pages/NotFound";
@@ -49,6 +50,7 @@ function Router() {
         <Route path="/detail/:type/:id" component={Detail} />
         <Route path="/settings" component={Settings} />
         <Route path="/signin" component={SignIn} />
+        <Route path="/profile/edit" component={EditProfile} />
         <Route path="/u/:username" component={Profile} />
         <Route path="/forum" component={Forum} />
         <Route path="/forum/:id" component={ForumThread} />
