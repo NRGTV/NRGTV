@@ -3,6 +3,7 @@ import { X, ExternalLink, Tv, Loader2, ChevronLeft, ChevronRight, Maximize } fro
 import { Media } from "@/data/movies";
 import { saveProgress } from "@/data/watchlist";
 import { useCloudSync } from "@/hooks/useCloudSync";
+import { lockLandscape, lockPortrait } from "@/lib/orientation";
 
 interface PlayerModalProps {
   media:           Media;
@@ -219,6 +220,26 @@ export default function PlayerModal({
   const requestPlayerFullscreen = () => {
     iframeRef.current?.requestFullscreen?.();
   };
+
+  // Landscape-lock the screen for as long as the player is in fullscreen,
+  // and re-lock portrait the moment it exits (browser fullscreen button,
+  // Esc key, back gesture, etc. all fire fullscreenchange, not just our
+  // own button) — portrait is the app-wide default everywhere else.
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (document.fullscreenElement) {
+        lockLandscape();
+      } else {
+        lockPortrait();
+      }
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      lockPortrait();
+    };
+  }, []);
 
   // ─── Season / episode picker (TV shows opened without a specific episode) ───
   if (needsPicker) {
