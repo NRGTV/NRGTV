@@ -455,6 +455,14 @@ export default function PlayerModal({
             allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
             allowFullScreen
             referrerPolicy="origin"
+            // allow-popups is required — these embeds detect blocked popups
+            // and refuse to play ("please disable sandbox") otherwise. What
+            // actually matters is that allow-top-navigation is NOT granted:
+            // that's what stops the embed from hijacking this tab/app and
+            // redirecting it to a random site. allow-popups-to-escape-sandbox
+            // is deliberately omitted too, so any popup that does open is
+            // itself still sandboxed (can't chain-redirect or spawn more).
+            sandbox="allow-scripts allow-same-origin allow-presentation allow-forms allow-popups"
             onLoad={() => {
               if (timeoutRef.current) clearTimeout(timeoutRef.current);
               setLoading(false);
@@ -475,4 +483,5 @@ export default function PlayerModal({
       </div>
     </div>
   );
-}
+    }
+    
