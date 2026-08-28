@@ -43,13 +43,12 @@
     <!--
       Restricts which origins can be loaded in an iframe on this page —
       the browser refuses to even request anything outside this list.
-      Only vidlink.pro is used as a player source now (see SOURCES in
-      PlayerModal.tsx); the other free-embed aggregators were dropped
-      since they gate playback behind ad popups.
+      Only 111movies.com is used as a player source now (see SOURCES in
+      PlayerModal.tsx).
     -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="frame-src 'self' https://vidlink.pro https://*.vidlink.pro https://*.tmdb.org https://*.themoviedb.org;"
+      content="frame-src 'self' https://111movies.com https://*.111movies.com https://*.tmdb.org https://*.themoviedb.org;"
     />
 
     <!-- Fonts -->
