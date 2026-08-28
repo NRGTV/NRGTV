@@ -8,10 +8,11 @@
  *  + Wrap everything in <AuthProvider>
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/context/AuthContext";
+import { lockPortrait } from "@/lib/orientation";
 import Navbar from "@/components/Navbar";
 import BottomTabBar from "@/components/BottomTabBar";
 import UpdateBanner from "@/components/UpdateBanner";
@@ -62,6 +63,13 @@ function Router() {
 
 function App() {
   const [booting, setBooting] = useState(true);
+
+  // App-wide default: portrait everywhere except the video player's
+  // fullscreen mode (see PlayerModal.tsx, which switches to landscape on
+  // entering fullscreen and back to portrait on exit).
+  useEffect(() => {
+    lockPortrait();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
