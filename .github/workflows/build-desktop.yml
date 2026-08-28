@@ -179,10 +179,13 @@ jobs:
               return { action: 'deny' };
             });
 
-            // Domains the video player iframe is allowed to load/navigate to.
-            // Everything else — ad redirects hijacking the iframe, popunder
-            // scripts, tracker bounces — gets blocked, whether it targets the
-            // main window or a nested frame.
+            // Domains the video player iframe is allowed to load/navigate to —
+            // kept in sync with SOURCES in PlayerModal.tsx (vidlink.pro is
+            // the only player source; the other free-embed aggregators were
+            // dropped since they gate playback behind ad popups). Everything
+            // else — ad redirects hijacking the iframe, popunder scripts,
+            // tracker bounces — gets blocked, whether it targets the main
+            // window or a nested frame.
             const ALLOWED_FRAME_HOSTS = ['vidlink.pro', 'tmdb.org', 'themoviedb.org'];
 
             const hostAllowed = (urlStr) => {
@@ -363,6 +366,75 @@ jobs:
         run: |
           npx cap add android
           npx cap sync android
+
+      - name: Harden Android WebView against embed redirects/popups
+        working-directory: capacitor-app
+        run: |
+          python3 - << 'PY'
+          import pathlib
+
+          # Extends Capacitor's own BridgeWebViewClient (rather than replacing
+          # it outright) so the JS-bridge URL handling Capacitor relies on
+          # still works — this only adds a check on top of it. Mirrors the
+          # Electron build's protection: block anything trying to navigate
+          # the main frame away from the app's own bundled origin (that's
+          # what an ad redirect hijacking the whole app looks like), and
+          # block every popup/new-window attempt outright. Deliberately does
+          # NOT allowlist by host — that would need updating every time a
+          # source is added/removed, and app-shell hijacks/popups are the
+          # same regardless of which of the six sources triggers them.
+          path = pathlib.Path("android/app/src/main/java/space/nrgtv/nrgtv/MainActivity.java")
+          path.write_text('''package space.nrgtv.nrgtv;
+
+          import android.os.Bundle;
+          import android.os.Message;
+          import android.util.Log;
+          import android.webkit.WebChromeClient;
+          import android.webkit.WebResourceRequest;
+          import android.webkit.WebView;
+          import com.getcapacitor.BridgeActivity;
+          import com.getcapacitor.BridgeWebViewClient;
+
+          public class MainActivity extends BridgeActivity {
+              // Origin Capacitor serves the bundled web app from (default
+              // androidScheme is "https", served from localhost).
+              private static final String APP_ORIGIN = "https://localhost";
+
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+
+                  WebView webView = this.bridge.getWebView();
+
+                  webView.setWebViewClient(new BridgeWebViewClient(this.bridge) {
+                      @Override
+                      public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                          if (request.isForMainFrame()) {
+                              String url = request.getUrl().toString();
+                              if (!url.startsWith(APP_ORIGIN)) {
+                                  Log.w("NRGTV", "Blocked main-frame redirect: " + url);
+                                  return true; // block — do not navigate the whole app away
+                              }
+                          }
+                          // Anything else (including the video iframe loading/
+                          // navigating within itself) falls through to Capacitor's
+                          // own handling.
+                          return super.shouldOverrideUrlLoading(view, request);
+                      }
+                  });
+
+                  webView.setWebChromeClient(new WebChromeClient() {
+                      @Override
+                      public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, Message resultMsg) {
+                          Log.w("NRGTV", "Blocked popup window request");
+                          return false;
+                      }
+                  });
+              }
+          }
+          ''')
+          print("Patched MainActivity.java")
+          PY
 
       - name: Generate Android app icon
         working-directory: capacitor-app
