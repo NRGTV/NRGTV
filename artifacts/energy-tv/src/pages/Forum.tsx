@@ -29,6 +29,8 @@ import {
   Clock,
   ChevronRight,
   Plus,
+  Paperclip,
+  X,
 } from "lucide-react";
 import {
   useForumCategories,
@@ -179,11 +181,12 @@ function NewThreadForm({
   const [categoryId, setCategoryId] = useState(categories[0]?.id ?? "");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
   const createThread = useCreateThread();
 
   const handleSubmit = async () => {
     if (!title.trim() || !body.trim() || !categoryId) return;
-    await createThread.mutateAsync({ categoryId, title, body });
+    await createThread.mutateAsync({ categoryId, title, body, files });
     onClose();
   };
 
@@ -226,26 +229,56 @@ function NewThreadForm({
           </p>
         )}
 
-        <div className="flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="px-3.5 py-1.5 rounded-xl text-sm font-semibold text-muted-foreground/70"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={createThread.isPending || !title.trim() || !body.trim()}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-40"
-            style={{
-              background: "linear-gradient(135deg, hsl(112,100%,54%) 0%, hsl(112,100%,36%) 100%)",
-              color: "#000",
-              boxShadow: "0 0 16px rgba(57,255,20,0.3)",
-            }}
-          >
-            <Plus className="w-4 h-4" />
-            {createThread.isPending ? "Posting..." : "Post Thread"}
-          </button>
+        {files.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {files.map((f, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs text-muted-foreground"
+                style={{ background: "rgba(255,255,255,0.05)" }}
+              >
+                <span className="truncate max-w-[140px]">{f.name}</span>
+                <button onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}>
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-2">
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground/70 cursor-pointer hover:text-foreground transition-colors">
+            <Paperclip className="w-3.5 h-3.5" />
+            Attach files
+            <input
+              type="file"
+              multiple
+              className="hidden"
+              onChange={(e) => setFiles((prev) => [...prev, ...Array.from(e.target.files ?? [])])}
+            />
+          </label>
+
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              className="px-3.5 py-1.5 rounded-xl text-sm font-semibold text-muted-foreground/70"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={createThread.isPending || !title.trim() || !body.trim()}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-40"
+              style={{
+                background: "linear-gradient(135deg, hsl(112,100%,54%) 0%, hsl(112,100%,36%) 100%)",
+                color: "#000",
+                boxShadow: "0 0 16px rgba(57,255,20,0.3)",
+              }}
+            >
+              <Plus className="w-4 h-4" />
+              {createThread.isPending ? "Posting..." : "Post Thread"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
