@@ -18,8 +18,11 @@ interface Source {
   build: (opts: { id: number; isTV: boolean; season: number; episode: number }) => string;
 }
 
-// Six embeddable sources, keyed by TMDB id. Most mirror the same handful of
-// public embed APIs that accept a TMDB id directly, so no extra lookups are needed.
+// Only vidlink.pro — the other five (vidsrc.cc, vidsrc.to, embed.su,
+// moviesapi, 111movies) are ad-monetized aggregators that gate playback
+// behind window.open() popups, which can't be reliably blocked in a
+// browser tab without also breaking playback. vidlink doesn't need that,
+// so it's the only source kept.
 const SOURCES: Source[] = [
   {
     id: "vidlink",
@@ -28,46 +31,6 @@ const SOURCES: Source[] = [
       isTV
         ? `https://vidlink.pro/embed/tv/${id}/${season}/${episode}`
         : `https://vidlink.pro/movie/${id}`,
-  },
-  {
-    id: "vidsrc.cc",
-    label: "Vidsrc",
-    build: ({ id, isTV, season, episode }) =>
-      isTV
-        ? `https://vidsrc.cc/v2/embed/tv/${id}/${season}/${episode}`
-        : `https://vidsrc.cc/v2/embed/movie/${id}`,
-  },
-  {
-    id: "vidsrc.to",
-    label: "Vidsrc.to",
-    build: ({ id, isTV, season, episode }) =>
-      isTV
-        ? `https://vidsrc.to/embed/tv/${id}/${season}/${episode}`
-        : `https://vidsrc.to/embed/movie/${id}`,
-  },
-  {
-    id: "embed.su",
-    label: "Embed.su",
-    build: ({ id, isTV, season, episode }) =>
-      isTV
-        ? `https://embed.su/embed/tv/${id}/${season}/${episode}`
-        : `https://embed.su/embed/movie/${id}`,
-  },
-  {
-    id: "moviesapi",
-    label: "MoviesAPI",
-    build: ({ id, isTV, season, episode }) =>
-      isTV
-        ? `https://moviesapi.club/tv/${id}-${season}-${episode}`
-        : `https://moviesapi.club/movie/${id}`,
-  },
-  {
-    id: "111movies",
-    label: "111Movies",
-    build: ({ id, isTV, season, episode }) =>
-      isTV
-        ? `https://111movies.com/tv/${id}/${season}/${episode}`
-        : `https://111movies.com/movie/${id}`,
   },
 ];
 
@@ -345,7 +308,8 @@ export default function PlayerModal({
           </div>
         </div>
 
-        {/* Source switcher */}
+        {/* Source switcher — only meaningful with more than one source */}
+        {SOURCES.length > 1 && (
         <div
           className="flex items-center gap-2 px-4 py-2.5 overflow-x-auto hide-scrollbar shrink-0"
           style={{ background: "rgba(255,255,255,0.015)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
@@ -386,6 +350,7 @@ export default function PlayerModal({
             );
           })}
         </div>
+        )}
 
         {/* Episode nav (TV only) */}
         {isTV && (
@@ -427,14 +392,14 @@ export default function PlayerModal({
           )}
           {allSourcesFailed && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10 px-6 text-center" style={{ background: "#040508" }}>
-              <p className="text-sm text-white/60">None of the sources loaded in time.</p>
+              <p className="text-sm text-white/60">Vidlink didn't load in time.</p>
               <div className="flex gap-3">
                 <button
                   onClick={() => switchSource(sourceIdx)}
                   className="px-4 py-2 rounded-xl text-xs font-bold text-black"
                   style={{ background: "linear-gradient(135deg,hsl(112,100%,54%),hsl(112,100%,40%))" }}
                 >
-                  Retry all sources
+                  Retry
                 </button>
                 <button
                   onClick={openInNewTab}
@@ -462,7 +427,12 @@ export default function PlayerModal({
             // redirecting it to a random site. allow-popups-to-escape-sandbox
             // is deliberately omitted too, so any popup that does open is
             // itself still sandboxed (can't chain-redirect or spawn more).
-            sandbox="allow-scripts allow-same-origin allow-presentation allow-forms allow-popups"
+            // No allow-popups: vidlink.pro is the only source now, and unlike
+            // the ad-aggregator sources that were dropped, it doesn't gate
+            // playback behind a popup succeeding, so this can stay fully
+            // locked down. allow-top-navigation is still (deliberately)
+            // never granted, so the app itself can't be redirected either.
+            sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
             onLoad={() => {
               if (timeoutRef.current) clearTimeout(timeoutRef.current);
               setLoading(false);
@@ -483,5 +453,4 @@ export default function PlayerModal({
       </div>
     </div>
   );
-    }
-    
+                }
