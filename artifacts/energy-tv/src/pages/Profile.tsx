@@ -1,9 +1,10 @@
 import { useParams, Link } from "wouter";
 import { useEffect, useState } from "react";
-import { MessagesSquare } from "lucide-react";
+import { MessagesSquare, Pencil } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { useUserForumPosts } from "@/hooks/useForum";
+import { useAuth } from "@/context/AuthContext";
 
 function timeAgo(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -29,10 +30,12 @@ interface Profile {
 
 export default function ProfilePage() {
   const { username } = useParams<{ username: string }>();
+  const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const { data: posts, isLoading: postsLoading } = useUserForumPosts(profile?.id);
+  const isOwnProfile = !!user && !!profile && user.id === profile.id;
 
   useEffect(() => {
     let cancelled = false;
@@ -85,15 +88,29 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-background pt-14 pb-10">
       <div className="w-full max-w-2xl mx-auto">
         {/* Banner */}
-        <div
-          className="w-full h-40 rounded-b-xl bg-cover bg-center"
-          style={{
-            backgroundImage: profile.banner_url ? `url(${profile.banner_url})` : undefined,
-            background: profile.banner_url
-              ? undefined
-              : "linear-gradient(145deg, hsl(112,100%,20%), hsl(112,100%,10%))",
-          }}
-        />
+        <div className="relative">
+          <div
+            className="w-full h-40 rounded-b-xl bg-cover bg-center"
+            style={{
+              backgroundImage: profile.banner_url ? `url(${profile.banner_url})` : undefined,
+              background: profile.banner_url
+                ? undefined
+                : "linear-gradient(145deg, hsl(112,100%,20%), hsl(112,100%,10%))",
+            }}
+          />
+
+          {isOwnProfile && (
+            <Link href="/profile/edit">
+              <button
+                className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all"
+                style={{ background: "rgba(0,0,0,0.55)", border: "1px solid rgba(255,255,255,0.15)" }}
+                aria-label="Edit profile"
+              >
+                <Pencil className="w-3.5 h-3.5 text-white" />
+              </button>
+            </Link>
+          )}
+        </div>
 
         {/* Avatar overlaps banner */}
         <div className="px-6 -mt-12 flex items-end justify-between">
