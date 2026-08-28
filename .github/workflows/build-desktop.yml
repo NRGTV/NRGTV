@@ -180,13 +180,12 @@ jobs:
             });
 
             // Domains the video player iframe is allowed to load/navigate to —
-            // kept in sync with SOURCES in PlayerModal.tsx (vidlink.pro is
-            // the only player source; the other free-embed aggregators were
-            // dropped since they gate playback behind ad popups). Everything
-            // else — ad redirects hijacking the iframe, popunder scripts,
-            // tracker bounces — gets blocked, whether it targets the main
-            // window or a nested frame.
-            const ALLOWED_FRAME_HOSTS = ['vidlink.pro', 'tmdb.org', 'themoviedb.org'];
+            // kept in sync with SOURCES in PlayerModal.tsx (111movies.com is
+            // the only player source currently). Everything else — ad
+            // redirects hijacking the iframe, popunder scripts, tracker
+            // bounces — gets blocked, whether it targets the main window or
+            // a nested frame.
+            const ALLOWED_FRAME_HOSTS = ['111movies.com', 'tmdb.org', 'themoviedb.org'];
 
             const hostAllowed = (urlStr) => {
               try {
