@@ -18,19 +18,19 @@ interface Source {
   build: (opts: { id: number; isTV: boolean; season: number; episode: number }) => string;
 }
 
-// Only vidlink.pro — the other five (vidsrc.cc, vidsrc.to, embed.su,
-// moviesapi, 111movies) are ad-monetized aggregators that gate playback
-// behind window.open() popups, which can't be reliably blocked in a
-// browser tab without also breaking playback. vidlink doesn't need that,
-// so it's the only source kept.
+// Only 111movies.com — all the free embed aggregators (this one included)
+// gate playback behind a window.open() popup succeeding, so that's granted
+// via the iframe's sandbox below regardless of source. The others
+// (vidlink.pro, vidsrc.cc, vidsrc.to, embed.su, moviesapi) were dropped
+// per current preference — swap the entry below to switch sources again.
 const SOURCES: Source[] = [
   {
-    id: "vidlink",
-    label: "Vidlink",
+    id: "111movies",
+    label: "111Movies",
     build: ({ id, isTV, season, episode }) =>
       isTV
-        ? `https://vidlink.pro/embed/tv/${id}/${season}/${episode}`
-        : `https://vidlink.pro/movie/${id}`,
+        ? `https://111movies.com/tv/${id}/${season}/${episode}`
+        : `https://111movies.com/movie/${id}`,
   },
 ];
 
@@ -392,7 +392,7 @@ export default function PlayerModal({
           )}
           {allSourcesFailed && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10 px-6 text-center" style={{ background: "#040508" }}>
-              <p className="text-sm text-white/60">Vidlink didn't load in time.</p>
+              <p className="text-sm text-white/60">111Movies didn't load in time.</p>
               <div className="flex gap-3">
                 <button
                   onClick={() => switchSource(sourceIdx)}
@@ -420,7 +420,7 @@ export default function PlayerModal({
             allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
             allowFullScreen
             referrerPolicy="origin"
-            // allow-popups is required — vidlink.pro (like the other free
+            // allow-popups is required — 111movies (like the other free
             // embeds it replaced) detects blocked popups and refuses to
             // play ("please disable sandbox") otherwise. What actually
             // matters is that allow-top-navigation is NOT granted: that's
@@ -451,5 +451,4 @@ export default function PlayerModal({
       </div>
     </div>
   );
-                }
-                                                 
+              }
