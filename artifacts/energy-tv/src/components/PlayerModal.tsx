@@ -420,17 +420,6 @@ export default function PlayerModal({
             allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
             allowFullScreen
             referrerPolicy="origin"
-            // allow-popups is required — 111movies (like the other free
-            // embeds it replaced) detects blocked popups and refuses to
-            // play ("please disable sandbox") otherwise. What actually
-            // matters is that allow-top-navigation is NOT granted: that's
-            // what stops the embed from hijacking this tab/app and
-            // redirecting it to a random site — a popup ad tab may still
-            // occasionally open, but the app itself stays put.
-            // allow-popups-to-escape-sandbox is deliberately omitted too,
-            // so any popup that does open is itself still sandboxed (can't
-            // chain-redirect or spawn more popups of its own).
-            sandbox="allow-scripts allow-same-origin allow-presentation allow-forms allow-popups"
             onLoad={() => {
               if (timeoutRef.current) clearTimeout(timeoutRef.current);
               setLoading(false);
@@ -451,4 +440,4 @@ export default function PlayerModal({
       </div>
     </div>
   );
-              }
+}
