@@ -40,18 +40,6 @@
     <link rel="icon" type="image/x-icon" sizes="any" href="./favicon.ico" />
     <link rel="shortcut icon" href="./favicon.ico" />
 
-    <!--
-      Restricts which origins can be loaded in an iframe on this page —
-      the browser refuses to even request anything outside this list.
-      Only 111movies (.com, which redirects to .net for the actual player
-      page) is used as a player source now (see SOURCES in
-      PlayerModal.tsx). Both domains are allowlisted since the redirect
-      happens after the initial iframe load.
-    -->
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="frame-src 'self' https://111movies.com https://*.111movies.com https://111movies.net https://*.111movies.net https://*.tmdb.org https://*.themoviedb.org;"
-    />
 
     <!-- Fonts -->
     <style>
