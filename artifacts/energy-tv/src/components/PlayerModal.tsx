@@ -433,8 +433,8 @@ export default function PlayerModal({
         {/* Footer hint */}
         <div className="px-4 py-2 text-center shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
           <p className="text-[10px] text-white/30">
-            Player not loading? It'll auto-switch sources in {SOURCE_TIMEOUT_MS / 1000}s, or{" "}
-            <button onClick={openInNewTab} className="underline hover:text-white/60">open in a new tab</button> now.
+            Created & Developed By F1FTYCAL
+            <button onClick={openInNewTab} className="underline hover:text-white/60">Open in a new tab</button> now.
           </p>
         </div>
       </div>
