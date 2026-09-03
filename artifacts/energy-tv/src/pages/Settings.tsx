@@ -99,7 +99,7 @@ export default function Settings() {
 
           <Section title="Subtitles">
             <div className="px-4 py-3">
-              <p className="text-sm font-medium text-foreground mb-2">Subtitle Language</p>
+              <p className="text-sm font-medium text-foreground mb-2">Subtitle Language (English By Default)</p>
               <div className="flex flex-wrap gap-2">
                 {["English", "Spanish", "French", "German", "Portuguese", "Off"].map((lang) => (
                   <button
