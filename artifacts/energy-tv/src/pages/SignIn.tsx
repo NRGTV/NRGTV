@@ -223,32 +223,12 @@ export default function SignIn() {
           {mode === "signin" ? "Sign In" : "Create Account"}
         </button>
 
-        {/* OAuth buttons */}
-        <div className="w-full flex flex-col gap-2">
-          <button
-            onClick={() => handleOAuth("google")}
-            disabled={busy}
-            className="w-full py-3 rounded-xl text-sm font-semibold"
-            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", color: "white" }}
-          >
-            Google
-          </button>
-          <button
-            onClick={() => handleOAuth("github")}
-            disabled={busy}
-            className="w-full py-3 rounded-xl text-sm font-semibold"
-            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", color: "white" }}
-          >
-            GitHub
-          </button>
-        </div>
-
         {/* Footer */}
         <p className="text-[11px] text-muted-foreground leading-relaxed">
           By continuing you agree to our{" "}
           <span className="underline underline-offset-2 cursor-pointer" style={{ color: "hsl(112,100%,54%)" }}>Terms</span>
           {" " }and{" "}
-          <span className="underline underline-offset-2 cursor-pointer" style={{ color: "hsl(112,100%,54%)" }}>Privacy Policy</span>.
+          <span className="underline underline-offset-2 cursor-pointer" style={{ color: "hsl(112,100%,54%)" }}>Conditions</span>.
         </p>
       </div>
     </div>
