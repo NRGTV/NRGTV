@@ -1,507 +1,111 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  Mic,
-  Square,
-  Play,
-  Pause,
-  Trash2,
-  Plus,
-  Volume2,
-  VolumeX,
-  Music,
-  Loader2,
+  Activity, AudioLines, Disc3, Download, Drum, FileAudio, Gauge,
+  KeyboardMusic, Layers3, Mic, Pause, Play, Plus, Redo2,
+  Save, SlidersHorizontal, Sparkles, Square, Undo2, Upload,
+  Volume2, VolumeX, Wand2, ZoomIn, ZoomOut
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { fetchRhymes, fetchNearRhymes, type RhymeResult } from "@/lib/rhymes";
-import {
-  useStudioProjects,
-  useCreateStudioProject,
-  useUpdateStudioProject,
-  useDeleteStudioProject,
-  useStudioTracks,
-  useAddStudioTrack,
-  useUpdateStudioTrack,
-  useDeleteStudioTrack,
-  type StudioProject,
-} from "@/hooks/useStudio";
+import { useStudioProjects, useCreateStudioProject, useUpdateStudioProject, useDeleteStudioProject } from "@/hooks/useStudio";
 
 const NEON = "hsl(112,100%,54%)";
-const card: React.CSSProperties = {
-  background: "rgba(255,255,255,0.03)",
-  border: "1px solid rgba(255,255,255,0.08)",
-};
+const PANEL = { background: "rgba(255,255,255,.035)", border: "1px solid rgba(255,255,255,.08)" } as React.CSSProperties;
 
-// ─── Metronome ──────────────────────────────────────────────
+type Clip = { id:string; name:string; url:string; start:number; duration:number; color:string; buffer?:AudioBuffer; source?:AudioBufferSourceNode };
+type Track = { id:string; name:string; clips:Clip[]; volume:number; pan:number; muted:boolean; solo:boolean; armed:boolean; fx:{gain:number; low:number; mid:number; high:number; comp:number; reverb:number; delay:number} };
+type Note = { id:number; step:number; pitch:number; velocity:number; length:number };
 
-function useMetronome(bpm: number) {
-  const [on, setOn] = useState(false);
-  const ctxRef = useRef<AudioContext | null>(null);
-  const timerRef = useRef<number | null>(null);
+const uid = () => Math.random().toString(36).slice(2,10);
+const clamp=(n:number,a:number,b:number)=>Math.max(a,Math.min(b,n));
 
-  const click = useCallback(() => {
-    const ctx = ctxRef.current;
-    if (!ctx) return;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.frequency.value = 1000;
-    gain.gain.setValueAtTime(0.35, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.05);
-  }, []);
-
-  useEffect(() => {
-    if (!on) {
-      if (timerRef.current) window.clearInterval(timerRef.current);
-      return;
-    }
-    if (!ctxRef.current) ctxRef.current = new AudioContext();
-    click();
-    timerRef.current = window.setInterval(click, 60000 / bpm);
-    return () => {
-      if (timerRef.current) window.clearInterval(timerRef.current);
-    };
-  }, [on, bpm, click]);
-
-  useEffect(() => () => ctxRef.current?.close(), []);
-
-  return { on, toggle: () => setOn((v) => !v) };
+function useAudioEngine(){
+  const ctx=useRef<AudioContext|null>(null); const master=useRef<GainNode|null>(null);
+  const ensure=()=>{ if(!ctx.current) ctx.current=new AudioContext(); if(!master.current){master.current=ctx.current.createGain(); master.current.gain.value=.9; master.current.connect(ctx.current.destination);} return ctx.current; };
+  const resume=async()=>{const c=ensure(); if(c.state!=="running") await c.resume();};
+  const decode=async(blob:Blob)=>{const c=ensure(); return c.decodeAudioData(await blob.arrayBuffer());};
+  return {ensure,resume,decode,ctx,master};
 }
 
-// ─── Recorder ───────────────────────────────────────────────
+function Meter({level=0}:{level?:number}){return <div className="h-2 rounded-full bg-black/50 overflow-hidden"><div className="h-full rounded-full transition-[width]" style={{width:`${clamp(level,0,1)*100}%`,background:NEON}}/></div>}
+function Knob({label,value,min,max,onChange,suffix=""}:{label:string;value:number;min:number;max:number;onChange:(n:number)=>void;suffix?:string}){return <label className="flex flex-col gap-1 min-w-16"><span className="text-[9px] uppercase tracking-widest text-muted-foreground/50">{label}</span><input aria-label={label} type="range" min={min} max={max} step={(max-min)/100} value={value} onChange={e=>onChange(+e.target.value)} style={{accentColor:NEON}}/><span className="text-[10px] tabular-nums text-muted-foreground/70">{value.toFixed(Math.abs(max-min)>10?0:2)}{suffix}</span></label>}
 
-function useRecorder(onDone: (blob: Blob) => void) {
-  const [recording, setRecording] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-
-  const start = async () => {
-    setError(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mr = new MediaRecorder(stream);
-      chunksRef.current = [];
-      mr.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-      mr.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        onDone(blob);
-      };
-      mr.start();
-      mediaRecorderRef.current = mr;
-      setRecording(true);
-    } catch {
-      setError("Couldn't access your microphone — check browser/site permissions.");
-    }
-  };
-
-  const stop = () => {
-    mediaRecorderRef.current?.stop();
-    setRecording(false);
-  };
-
-  return { recording, start, stop, error };
+function RhymeBox({insert}:{insert:(w:string)=>void}){
+ const [word,setWord]=useState(""); const [mode,setMode]=useState<"perfect"|"slant">("perfect"); const [items,setItems]=useState<RhymeResult[]>([]);
+ const go=async()=>{if(!word.trim())return; setItems(await (mode==="perfect"?fetchRhymes(word):fetchNearRhymes(word)).catch(()=>[]));};
+ return <div className="rounded-2xl p-3" style={PANEL}><div className="flex items-center gap-2 mb-2"><Sparkles className="w-4 h-4" style={{color:NEON}}/><b className="text-xs">Writer AI — rhyme lab</b></div><div className="flex gap-1.5"><input value={word} onChange={e=>setWord(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder="word / phrase" className="flex-1 bg-black/20 rounded-lg px-2.5 py-2 text-xs outline-none"/><button onClick={go} className="rounded-lg px-3 text-xs font-bold text-black" style={{background:NEON}}>Find</button></div><div className="flex gap-1 mt-2">{["perfect","slant"].map(x=><button key={x} onClick={()=>setMode(x as any)} className="text-[10px] px-2 py-1 rounded" style={{background:mode===x?"rgba(57,255,20,.14)":"rgba(255,255,255,.04)",color:mode===x?NEON:"#aaa"}}>{x}</button>)}</div><div className="flex flex-wrap gap-1 mt-2 max-h-20 overflow-auto">{items.map(x=><button key={x.word} onClick={()=>insert(x.word)} className="text-[10px] px-2 py-1 rounded bg-white/5 hover:bg-white/10">{x.word}</button>)}</div></div>
 }
 
-// ─── Rhyme panel ────────────────────────────────────────────
-
-function RhymePanel({ onInsert }: { onInsert: (word: string) => void }) {
-  const [word, setWord] = useState("");
-  const [mode, setMode] = useState<"perfect" | "slant">("perfect");
-  const [results, setResults] = useState<RhymeResult[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const search = async () => {
-    if (!word.trim()) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const r = await (mode === "perfect" ? fetchRhymes(word) : fetchNearRhymes(word));
-      setResults(r);
-    } catch {
-      setError("Rhyme lookup failed — try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="rounded-2xl p-4" style={card}>
-      <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5 mb-3">
-        <Music className="w-4 h-4" style={{ color: NEON }} />
-        Rhyme finder
-      </h3>
-
-      <div className="flex gap-2 mb-2">
-        <input
-          value={word}
-          onChange={(e) => setWord(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && search()}
-          placeholder="Type a word..."
-          className="flex-1 rounded-xl px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none"
-          style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
-        />
-        <button
-          onClick={search}
-          disabled={loading || !word.trim()}
-          className="px-3 py-2 rounded-xl text-xs font-bold text-black disabled:opacity-40"
-          style={{ background: NEON }}
-        >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Go"}
-        </button>
-      </div>
-
-      <div className="flex gap-1.5 mb-3">
-        {(["perfect", "slant"] as const).map((m) => (
-          <button
-            key={m}
-            onClick={() => setMode(m)}
-            className="px-2.5 py-1 rounded-lg text-[11px] font-semibold capitalize transition-colors"
-            style={{
-              background: mode === m ? "rgba(57,255,20,0.12)" : "rgba(255,255,255,0.04)",
-              color: mode === m ? NEON : "rgba(255,255,255,0.5)",
-            }}
-          >
-            {m}
-          </button>
-        ))}
-      </div>
-
-      {error && <p className="text-xs text-red-400 mb-2">{error}</p>}
-
-      <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto">
-        {results.map((r) => (
-          <button
-            key={r.word}
-            onClick={() => onInsert(r.word)}
-            className="px-2.5 py-1 rounded-lg text-xs text-muted-foreground/80 hover:text-foreground transition-colors"
-            style={{ background: "rgba(255,255,255,0.05)" }}
-            title="Insert into lyrics"
-          >
-            {r.word}
-          </button>
-        ))}
-        {!loading && results.length === 0 && (
-          <p className="text-xs text-muted-foreground/40">Search a word to see rhymes here.</p>
-        )}
-      </div>
-    </div>
-  );
+function DrumMachine({bpm,onHit}:{bpm:number;onHit:(kind:string)=>void}){
+ const names=["KICK","SNARE","HAT","CLAP","808","OPEN HAT"]; const [grid,setGrid]=useState<boolean[][]>(()=>names.map((_,r)=>Array.from({length:16},(_,i)=>[0,4,8,12].includes(i)&&r===0))); const [playing,setPlaying]=useState(false); const [step,setStep]=useState(0); const timer=useRef<number|null>(null);
+ useEffect(()=>{if(!playing){if(timer.current)clearInterval(timer.current);return;} timer.current=window.setInterval(()=>setStep(s=>{const n=(s+1)%16; grid.forEach((row,r)=>{if(row[n])onHit(names[r])}); return n}),60000/bpm/4); return()=>{if(timer.current)clearInterval(timer.current)}},[playing,bpm,grid]);
+ return <div className="rounded-2xl p-3" style={PANEL}><div className="flex items-center justify-between mb-2"><b className="text-xs flex gap-2 items-center"><Drum className="w-4 h-4" style={{color:NEON}}/>Drum machine</b><button onClick={()=>setPlaying(v=>!v)} className="text-[10px] px-2 py-1 rounded" style={{background:playing?"rgba(239,68,68,.18)":"rgba(57,255,20,.12)",color:playing?"#f87171":NEON}}>{playing?"STOP":"SEQ"}</button></div>{grid.map((row,r)=><div key={names[r]} className="flex items-center gap-1 mb-1"><span className="w-14 text-[8px] text-muted-foreground/50">{names[r]}</span>{row.map((on,i)=><button key={i} onClick={()=>setGrid(g=>g.map((rr,ri)=>ri===r?rr.map((v,ii)=>ii===i?!v:v):rr))} className="w-4 h-5 rounded-[3px]" style={{background:on?(i===step?NEON:"rgba(57,255,20,.35)"):(i===step?"rgba(255,255,255,.13)":"rgba(255,255,255,.035)")}}/>)}</div>)}</div>
 }
 
-// ─── Track row ──────────────────────────────────────────────
-
-function TrackRow({
-  track,
-  audioRef,
-  onUpdate,
-  onDelete,
-}: {
-  track: { id: string; name: string; url: string; volume: number; muted: boolean };
-  audioRef: (el: HTMLAudioElement | null) => void;
-  onUpdate: (fields: { volume?: number; muted?: boolean }) => void;
-  onDelete: () => void;
-}) {
-  return (
-    <div className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={card}>
-      <button onClick={() => onUpdate({ muted: !track.muted })} className="shrink-0">
-        {track.muted ? (
-          <VolumeX className="w-4 h-4 text-muted-foreground/50" />
-        ) : (
-          <Volume2 className="w-4 h-4" style={{ color: NEON }} />
-        )}
-      </button>
-
-      <span className="text-sm text-foreground/90 truncate w-24 shrink-0">{track.name}</span>
-
-      <input
-        type="range"
-        min={0}
-        max={1}
-        step={0.01}
-        value={track.volume}
-        onChange={(e) => onUpdate({ volume: parseFloat(e.target.value) })}
-        className="flex-1"
-        style={{ accentColor: NEON }}
-      />
-
-      <audio ref={audioRef} src={track.url} preload="auto" className="hidden" />
-
-      <button onClick={onDelete} className="shrink-0 text-muted-foreground/40 hover:text-red-400 transition-colors">
-        <Trash2 className="w-4 h-4" />
-      </button>
-    </div>
-  );
+function PianoRoll({notes,setNotes}:{notes:Note[];setNotes:React.Dispatch<React.SetStateAction<Note[]>>}){
+ const pitches=Array.from({length:12},(_,i)=>72-i); const cols=32;
+ return <div className="rounded-2xl p-3" style={PANEL}><div className="flex items-center justify-between mb-2"><b className="text-xs flex gap-2 items-center"><KeyboardMusic className="w-4 h-4" style={{color:NEON}}/>Piano roll</b><span className="text-[9px] text-muted-foreground/40">click cells • 32 steps</span></div><div className="overflow-auto"><div className="min-w-[760px]">{pitches.map(p=><div key={p} className="flex h-5">{Array.from({length:cols},(_,s)=>{const n=notes.find(x=>x.pitch===p&&x.step===s);return <button key={s} onClick={()=>setNotes(ns=>n?ns.filter(x=>x.id!==n.id):[...ns,{id:Date.now()+s,pitch:p,step:s,velocity:.9,length:1}])} className="flex-1 border-r border-b border-white/5" style={{background:n?NEON:(p%12===1||p%12===3||p%12===6||p%12===8||p%12===10?"rgba(0,0,0,.35)":"rgba(255,255,255,.025)")}}/>})}</div>)}</div></div></div>
 }
 
-// ─── Main page ──────────────────────────────────────────────
-
-export default function Studio() {
-  const { user, loading: authLoading } = useAuth();
-
-  const { data: projects } = useStudioProjects();
-  const createProject = useCreateStudioProject();
-  const updateProject = useUpdateStudioProject();
-  const deleteProject = useDeleteStudioProject();
-
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const active = projects?.find((p) => p.id === activeId) ?? projects?.[0] ?? null;
-
-  useEffect(() => {
-    if (!activeId && projects && projects.length > 0) setActiveId(projects[0].id);
-  }, [projects, activeId]);
-
-  const { data: tracks } = useStudioTracks(active?.id);
-  const addTrack = useAddStudioTrack(active?.id ?? "");
-  const updateTrack = useUpdateStudioTrack(active?.id ?? "");
-  const deleteTrack = useDeleteStudioTrack(active?.id ?? "");
-
-  const [lyricsDraft, setLyricsDraft] = useState("");
-  const [bpmDraft, setBpmDraft] = useState(90);
-  const saveTimer = useRef<number | null>(null);
-  const lyricsRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    setLyricsDraft(active?.lyrics ?? "");
-    setBpmDraft(active?.bpm ?? 90);
-  }, [active?.id]);
-
-  const scheduleSave = (fields: Partial<Pick<StudioProject, "lyrics" | "bpm">>) => {
-    if (!active) return;
-    if (saveTimer.current) window.clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(() => {
-      updateProject.mutate({ id: active.id, ...fields });
-    }, 800);
-  };
-
-  const metronome = useMetronome(bpmDraft);
-  const recorder = useRecorder(async (blob) => {
-    if (!active) return;
-    await addTrack.mutateAsync({ blob, name: `Take ${(tracks?.length ?? 0) + 1}` });
-  });
-
-  const audioEls = useRef<Record<string, HTMLAudioElement | null>>({});
-  const [playing, setPlaying] = useState(false);
-
-  const playAll = () => {
-    Object.values(audioEls.current).forEach((el) => el?.play());
-    setPlaying(true);
-  };
-  const stopAll = () => {
-    Object.values(audioEls.current).forEach((el) => {
-      if (el) {
-        el.pause();
-        el.currentTime = 0;
-      }
-    });
-    setPlaying(false);
-  };
-
-  useEffect(() => {
-    if (!tracks) return;
-    tracks.forEach((t) => {
-      const el = audioEls.current[t.id];
-      if (el) {
-        el.volume = t.muted ? 0 : t.volume;
-      }
-    });
-  }, [tracks]);
-
-  const insertAtCursor = (word: string) => {
-    const el = lyricsRef.current;
-    if (!el) {
-      setLyricsDraft((prev) => `${prev}${word} `);
-      return;
-    }
-    const start = el.selectionStart ?? lyricsDraft.length;
-    const end = el.selectionEnd ?? lyricsDraft.length;
-    const next = lyricsDraft.slice(0, start) + word + lyricsDraft.slice(end);
-    setLyricsDraft(next);
-    scheduleSave({ lyrics: next });
-    requestAnimationFrame(() => {
-      el.focus();
-      el.selectionStart = el.selectionEnd = start + word.length;
-    });
-  };
-
-  if (authLoading) {
-    return <div className="min-h-screen bg-background pt-14" />;
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background pt-14 pb-10 flex items-center justify-center px-6">
-        <p className="text-sm text-muted-foreground">Sign in to use the studio.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-background pt-14 pb-16">
-      <div className="max-w-5xl mx-auto px-4 md:px-6 pt-6">
-        {/* Project bar */}
-        <div className="flex items-center gap-2 mb-6 overflow-x-auto hide-scrollbar">
-          {projects?.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setActiveId(p.id)}
-              className="px-3 py-1.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors"
-              style={{
-                background: p.id === active?.id ? "rgba(57,255,20,0.12)" : "rgba(255,255,255,0.04)",
-                color: p.id === active?.id ? NEON : "rgba(255,255,255,0.6)",
-              }}
-            >
-              {p.title}
-            </button>
-          ))}
-          <button
-            onClick={async () => {
-              const p = await createProject.mutateAsync("Untitled");
-              setActiveId(p.id);
-            }}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-semibold text-muted-foreground/70 hover:text-foreground transition-colors"
-            style={{ background: "rgba(255,255,255,0.04)" }}
-          >
-            <Plus className="w-4 h-4" /> New
-          </button>
-        </div>
-
-        {!active ? (
-          <p className="text-sm text-muted-foreground">Create a project to get started.</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Left: lyrics + rhymes */}
-            <div className="flex flex-col gap-4">
-              <div className="rounded-2xl p-4" style={card}>
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <input
-                    value={active.title}
-                    onChange={(e) => updateProject.mutate({ id: active.id, title: e.target.value })}
-                    className="text-sm font-bold text-foreground bg-transparent outline-none flex-1"
-                  />
-                  <button
-                    onClick={() => deleteProject.mutate(active.id)}
-                    className="text-muted-foreground/40 hover:text-red-400 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <textarea
-                  ref={lyricsRef}
-                  value={lyricsDraft}
-                  onChange={(e) => {
-                    setLyricsDraft(e.target.value);
-                    scheduleSave({ lyrics: e.target.value });
-                  }}
-                  placeholder="Write your bars..."
-                  rows={14}
-                  className="w-full rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 resize-none outline-none leading-relaxed"
-                  style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
-                />
-
-                <div className="flex items-center gap-3 mt-3">
-                  <label className="text-xs text-muted-foreground/60 flex items-center gap-1.5">
-                    BPM
-                    <input
-                      type="number"
-                      min={40}
-                      max={220}
-                      value={bpmDraft}
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value, 10) || 90;
-                        setBpmDraft(v);
-                        scheduleSave({ bpm: v });
-                      }}
-                      className="w-16 rounded-lg px-2 py-1 text-xs text-foreground outline-none"
-                      style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
-                    />
-                  </label>
-
-                  <button
-                    onClick={metronome.toggle}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors"
-                    style={{
-                      background: metronome.on ? "rgba(57,255,20,0.15)" : "rgba(255,255,255,0.05)",
-                      color: metronome.on ? NEON : "rgba(255,255,255,0.6)",
-                    }}
-                  >
-                    {metronome.on ? "Stop click" : "Start click"}
-                  </button>
-                </div>
-              </div>
-
-              <RhymePanel onInsert={insertAtCursor} />
-            </div>
-
-            {/* Right: recorder + mixer */}
-            <div className="flex flex-col gap-4">
-              <div className="rounded-2xl p-4 flex flex-col items-center gap-3" style={card}>
-                <button
-                  onClick={recorder.recording ? recorder.stop : recorder.start}
-                  disabled={addTrack.isPending}
-                  className="w-16 h-16 rounded-full flex items-center justify-center transition-all"
-                  style={{
-                    background: recorder.recording
-                      ? "rgba(239,68,68,0.15)"
-                      : "linear-gradient(135deg, hsl(112,100%,54%), hsl(112,100%,36%))",
-                    boxShadow: recorder.recording ? "0 0 0 4px rgba(239,68,68,0.15)" : "0 0 20px rgba(57,255,20,0.3)",
-                  }}
-                >
-                  {addTrack.isPending ? (
-                    <Loader2 className="w-6 h-6 text-white animate-spin" />
-                  ) : recorder.recording ? (
-                    <Square className="w-6 h-6 text-red-400" fill="currentColor" />
-                  ) : (
-                    <Mic className="w-6 h-6 text-black" />
-                  )}
-                </button>
-                <p className="text-xs text-muted-foreground/60">
-                  {recorder.recording ? "Recording..." : "Tap to record a take"}
-                </p>
-                {recorder.error && <p className="text-xs text-red-400">{recorder.error}</p>}
-              </div>
-
-              <div className="rounded-2xl p-4" style={card}>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-bold text-foreground">Tracks</h3>
-                  <button
-                    onClick={playing ? stopAll : playAll}
-                    disabled={!tracks || tracks.length === 0}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-black disabled:opacity-30"
-                    style={{ background: NEON }}
-                  >
-                    {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                    {playing ? "Stop" : "Play all"}
-                  </button>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  {tracks?.map((t) => (
-                    <TrackRow
-                      key={t.id}
-                      track={t}
-                      audioRef={(el) => {
-                        audioEls.current[t.id] = el;
-                      }}
-                      onUpdate={(fields) => updateTrack.mutate({ id: t.id, ...fields })}
-                      onDelete={() => deleteTrack.mutate({ id: t.id, audio_path: t.audio_path })}
-                    />
-                  ))}
-                  {(!tracks || tracks.length === 0) && (
-                    <p className="text-xs text-muted-foreground/40">No takes recorded yet.</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+export default function Studio(){
+ const {user,loading:authLoading}=useAuth(); const {data:projects}=useStudioProjects(); const createProject=useCreateStudioProject(); const updateProject=useUpdateStudioProject(); const deleteProject=useDeleteStudioProject();
+ const [activeId,setActiveId]=useState<string|null>(null); const active=projects?.find(p=>p.id===activeId)||projects?.[0]||null; const audio=useAudioEngine();
+ const [bpm,setBpm]=useState(96),[playing,setPlaying]=useState(false),[recording,setRecording]=useState(false),[loop,setLoop]=useState(true),[zoom,setZoom]=useState(1),[snap,setSnap]=useState(true),[view,setView]=useState<"arrange"|"mix"|"beat"|"keys">("arrange");
+ const [lyrics,setLyrics]=useState(""); const [tracks,setTracks]=useState<Track[]>([{id:uid(),name:"VOCAL 01",clips:[],volume:1,pan:0,muted:false,solo:false,armed:true,fx:{gain:0,low:0,mid:0,high:0,comp:0,reverb:0,delay:0}}]);
+ const [notes,setNotes]=useState<Note[]>([]); const [position,setPosition]=useState(0); const [history,setHistory]=useState<Track[][]>([]); const [future,setFuture]=useState<Track[][]>([]); const fileRef=useRef<HTMLInputElement>(null); const recorder=useRef<MediaRecorder|null>(null); const chunks=useRef<Blob[]>([]); const lyricRef=useRef<HTMLTextAreaElement>(null);
+ useEffect(()=>{if(!active)return;setBpm(active.bpm||96);setLyrics(active.lyrics||"")},[active?.id]); useEffect(()=>{if(!activeId&&projects?.[0])setActiveId(projects[0].id)},[projects,activeId]);
+ const pushHistory=(next:Track[])=>{setHistory(h=>[...h,tracks].slice(-30));setFuture([]);setTracks(next)};
+ const importAudio=async(file:File)=>{const buffer=await audio.decode(file); const t=tracks.find(x=>x.armed)||tracks[0]; const clip:Clip={id:uid(),name:file.name,url:URL.createObjectURL(file),start:position,duration:buffer.duration,color:NEON,buffer}; pushHistory(tracks.map(x=>x.id===t.id?{...x,clips:[...x.clips,clip]}:x));};
+ const startRecord=async()=>{await audio.resume(); const stream=await navigator.mediaDevices.getUserMedia({audio:true}); const mr=new MediaRecorder(stream); chunks.current=[]; mr.ondataavailable=e=>e.data.size&&chunks.current.push(e.data); mr.onstop=async()=>{stream.getTracks().forEach(x=>x.stop()); const blob=new Blob(chunks.current,{type:"audio/webm"}); const buffer=await audio.decode(blob); const t=tracks.find(x=>x.armed)||tracks[0]; const clip:Clip={id:uid(),name:`Vocal take ${t.clips.length+1}`,url:URL.createObjectURL(blob),start:position,duration:buffer.duration,color:"#ff3b6b",buffer}; pushHistory(tracks.map(x=>x.id===t.id?{...x,clips:[...x.clips,clip]}:x));};mr.start();recorder.current=mr;setRecording(true)};
+ const stopRecord=()=>{recorder.current?.stop();setRecording(false)};
+ const playAll=async()=>{await audio.resume();setPlaying(true); const c=audio.ctx.current!; tracks.forEach(t=>t.clips.forEach(cl=>{if(!cl.buffer||t.muted)return;const s=c.createBufferSource(),g=c.createGain(),p=c.createStereoPanner();s.buffer=cl.buffer;g.gain.value=t.volume;p.pan.value=t.pan;s.connect(g).connect(p).connect(audio.master!.current!);s.start(c.currentTime+Math.max(0,cl.start));cl.source=s;}))};
+ const stopAll=()=>{tracks.forEach(t=>t.clips.forEach(c=>{try{c.source?.stop()}catch{}}));setPlaying(false)};
+ const exportMix=async()=>{const clips=tracks.flatMap(t=>t.clips.map(c=>({...c,track:t}))).filter(x=>x.buffer&&!x.track.muted);if(!clips.length)return;const len=Math.ceil(Math.max(...clips.map(x=>x.start+x.duration))*44100)+44100;const off=new OfflineAudioContext(2,len,44100);const master=off.createGain();master.gain.value=.95;master.connect(off.destination);clips.forEach(x=>{const s=off.createBufferSource(),g=off.createGain(),p=off.createStereoPanner();s.buffer=x.buffer!;g.gain.value=x.track.volume;p.pan.value=x.track.pan;s.connect(g).connect(p).connect(master);s.start(x.start)});const rendered=await off.startRendering();const wav=audioBufferToWav(rendered);const a=document.createElement("a");a.href=URL.createObjectURL(wav);a.download=`${active?.title||"NRGTV-project"}-mix.wav`;a.click()};
+ const addTrack=()=>pushHistory([...tracks,{id:uid(),name:`AUDIO ${tracks.length+1}`,clips:[],volume:1,pan:0,muted:false,solo:false,armed:false,fx:{gain:0,low:0,mid:0,high:0,comp:0,reverb:0,delay:0}}]);
+ const updateTrack=(id:string,patch:Partial<Track>)=>setTracks(ts=>ts.map(t=>t.id===id?{...t,...patch}:t));
+ const save=()=>{if(active)updateProject.mutate({id:active.id,bpm,lyrics})};
+ const insertLyric=(word:string)=>{const el=lyricRef.current;if(!el)return setLyrics(v=>v+word+" ");const a=el.selectionStart,b=el.selectionEnd;const n=lyrics.slice(0,a)+word+lyrics.slice(b);setLyrics(n);requestAnimationFrame(()=>{el.focus();el.selectionStart=el.selectionEnd=a+word.length})};
+ if(authLoading)return <div className="min-h-screen bg-background"/>; if(!user)return <div className="min-h-screen bg-background flex items-center justify-center text-sm text-muted-foreground">Sign in to unlock the studio.</div>;
+ return <div className="min-h-screen bg-[#080909] text-foreground pt-14 pb-12">
+  <input ref={fileRef} type="file" accept="audio/*" multiple className="hidden" onChange={e=>Array.from(e.target.files||[]).forEach(importAudio)}/>
+  <div className="sticky top-14 z-30 border-b border-white/10 bg-[#0b0c0c]/95 backdrop-blur-xl">
+   <div className="max-w-[1600px] mx-auto px-3 py-2 flex items-center gap-2 overflow-x-auto">
+    <div className="flex items-center gap-2 mr-2"><Disc3 className="w-5 h-5" style={{color:NEON}}/><b className="text-sm tracking-wide">NRGTV STUDIO</b><span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-muted-foreground">PRO</span></div>
+    <button onClick={()=>playing?stopAll():playAll()} className="w-9 h-9 rounded-full flex items-center justify-center" style={{background:playing?"rgba(239,68,68,.18)":NEON,color:playing?"#f87171":"#000"}}>{playing?<Pause className="w-4 h-4"/>:<Play className="w-4 h-4" fill="currentColor"/>}</button>
+    <button onClick={()=>recording?stopRecord():startRecord()} className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center">{recording?<Square className="w-4 h-4 text-red-400" fill="currentColor"/>:<Mic className="w-4 h-4"/>}</button>
+    <button onClick={()=>setLoop(v=>!v)} className="text-[10px] px-2.5 py-2 rounded-lg" style={{background:loop?"rgba(57,255,20,.12)":"rgba(255,255,255,.05)",color:loop?NEON:"#aaa"}}>LOOP</button>
+    <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-white/5"><Gauge className="w-3.5 h-3.5"/><input aria-label="BPM" type="number" min="40" max="240" value={bpm} onChange={e=>setBpm(clamp(+e.target.value||96,40,240))} className="w-12 bg-transparent text-xs outline-none"/><span className="text-[9px] text-muted-foreground">BPM</span></div>
+    <div className="ml-auto flex gap-1"><button onClick={()=>fileRef.current?.click()} className="px-2.5 py-2 rounded-lg bg-white/5 text-[10px] flex gap-1.5 items-center"><Upload className="w-3.5 h-3.5"/>Import</button><button onClick={exportMix} className="px-2.5 py-2 rounded-lg text-[10px] font-bold text-black flex gap-1.5 items-center" style={{background:NEON}}><Download className="w-3.5 h-3.5"/>Export WAV</button><button onClick={save} className="px-2.5 py-2 rounded-lg bg-white/5 text-[10px] flex gap-1.5 items-center"><Save className="w-3.5 h-3.5"/>Save</button></div>
+   </div>
+  </div>
+  <div className="max-w-[1600px] mx-auto px-3 py-3">
+   <div className="flex items-center gap-2 mb-3 overflow-auto">{projects?.map(p=><button key={p.id} onClick={()=>setActiveId(p.id)} className="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap" style={{background:p.id===active?.id?"rgba(57,255,20,.12)":"rgba(255,255,255,.04)",color:p.id===active?.id?NEON:"#999"}}>{p.title}</button>)}<button onClick={async()=>setActiveId((await createProject.mutateAsync("Untitled")).id)} className="px-3 py-1.5 rounded-lg bg-white/5 text-xs flex gap-1"><Plus className="w-3 h-3"/>Project</button>{active&&<button onClick={()=>{if(confirm("Delete this studio project?"))deleteProject.mutate(active.id)}} className="px-2 py-1.5 rounded-lg bg-white/5 text-xs text-red-400" title="Delete project"><Trash2 className="w-3.5 h-3.5"/></button>}</div>
+   <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-3 max-[1050px]:grid-cols-1">
+    <section className="min-w-0">
+     <div className="rounded-2xl overflow-hidden" style={PANEL}>
+      <div className="px-3 py-2 border-b border-white/5 flex items-center gap-1"><button onClick={()=>setView("arrange")} className="px-3 py-1.5 rounded-lg text-[10px] font-semibold hover:bg-white/5">ARRANGE</button><button onClick={()=>setView("mix")} className="px-3 py-1.5 rounded-lg text-[10px] font-semibold hover:bg-white/5">MIXER</button><button onClick={()=>setView("beat")} className="px-3 py-1.5 rounded-lg text-[10px] font-semibold hover:bg-white/5">DRUMS</button><button onClick={()=>setView("keys")} className="px-3 py-1.5 rounded-lg text-[10px] font-semibold hover:bg-white/5">PIANO ROLL</button><span className="ml-auto text-[9px] text-muted-foreground/40">{Math.floor(position/60)}:{String(Math.floor(position%60)).padStart(2,"0")} • 4/4</span></div>
+      {view==="arrange"&&<>
+       <div className="h-10 border-b border-white/5 flex items-end pl-40 overflow-hidden">{Array.from({length:24},(_,i)=><div key={i} className="min-w-[70px] text-[8px] text-muted-foreground/35 pb-1 border-l border-white/5 h-full pl-1">{i+1}</div>)}</div>
+       <div className="relative overflow-x-auto"><div style={{minWidth:`${170+24*70*zoom}px`}}>{tracks.map((t,ri)=><div key={t.id} className="h-24 border-b border-white/5 flex">
+         <div className="w-40 shrink-0 p-2 bg-[#0c0d0d] border-r border-white/5"><div className="flex items-center gap-1"><button onClick={()=>updateTrack(t.id,{muted:!t.muted})}>{t.muted?<VolumeX className="w-3.5 h-3.5 text-muted-foreground/40"/>:<Volume2 className="w-3.5 h-3.5" style={{color:NEON}}/>}</button><input value={t.name} onChange={e=>updateTrack(t.id,{name:e.target.value})} className="bg-transparent outline-none text-[10px] font-bold w-full"/></div><div className="flex gap-1 mt-2"><button onClick={()=>updateTrack(t.id,{solo:!t.solo})} className="w-7 h-6 rounded bg-white/5 text-[9px]">S</button><button onClick={()=>updateTrack(t.id,{armed:!t.armed})} className="w-7 h-6 rounded bg-white/5 text-[9px]" style={{color:t.armed?"#f87171":undefined}}>R</button></div></div>
+         <div className="relative flex-1 bg-[linear-gradient(90deg,rgba(255,255,255,.035)_1px,transparent_1px)]" style={{backgroundSize:`${70*zoom}px 100%`}} onClick={e=>{const r=e.currentTarget.getBoundingClientRect();setPosition(Math.max(0,(e.clientX-r.left)/(70*zoom)*60/4));}}>{t.clips.map(c=><div key={c.id} className="absolute top-2 h-20 rounded-lg overflow-hidden border border-white/10" style={{left:`${c.start/60*4*70*zoom}px`,width:`${Math.max(30,c.duration/60*4*70*zoom)}px`,background:`linear-gradient(135deg,${c.color}40,rgba(255,255,255,.04))`}}><div className="text-[9px] px-2 pt-1 truncate">{c.name}</div><div className="absolute inset-x-2 bottom-3 h-8 opacity-50 flex items-center">{Array.from({length:32},(_,i)=><i key={i} className="flex-1 mx-px rounded" style={{height:`${15+Math.abs(Math.sin(i*2.7+c.duration))*80}%`,background:NEON}}/>)}</div></div>)}</div>
+       </div>)}</div></div>
+       <div className="px-2 py-2 flex items-center gap-2 border-t border-white/5"><button onClick={addTrack} className="text-[10px] px-2 py-1.5 rounded bg-white/5"><Plus className="w-3 h-3 inline mr-1"/>Track</button><button onClick={()=>fileRef.current?.click()} className="text-[10px] px-2 py-1.5 rounded bg-white/5"><FileAudio className="w-3 h-3 inline mr-1"/>Audio clip</button><button onClick={()=>setSnap(v=>!v)} className="text-[10px] px-2 py-1.5 rounded" style={{background:snap?"rgba(57,255,20,.1)":"rgba(255,255,255,.04)",color:snap?NEON:"#888"}}>SNAP</button><button onClick={()=>setZoom(z=>clamp(z+.25,.5,3))} className="w-7 h-7 rounded bg-white/5 flex items-center justify-center"><ZoomIn className="w-3.5 h-3.5"/></button><button onClick={()=>setZoom(z=>clamp(z-.25,.5,3))} className="w-7 h-7 rounded bg-white/5 flex items-center justify-center"><ZoomOut className="w-3.5 h-3.5"/></button><button onClick={()=>{if(history.length){setFuture(f=>[tracks,...f]);setTracks(history.at(-1)!);setHistory(h=>h.slice(0,-1))}}} className="w-7 h-7 rounded bg-white/5 flex items-center justify-center"><Undo2 className="w-3.5 h-3.5"/></button><button onClick={()=>{if(future.length){setHistory(h=>[...h,tracks]);setTracks(future.at(-1)!);setFuture(f=>f.slice(0,-1))}}} className="w-7 h-7 rounded bg-white/5 flex items-center justify-center"><Redo2 className="w-3.5 h-3.5"/></button></div>
+      </>}
+      {view==="mix"&&<div className="p-3 grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2">{tracks.map(t=><div key={t.id} className="rounded-xl p-2 bg-black/20 border border-white/5"><div className="flex items-center justify-between text-[10px] font-bold"><span className="truncate">{t.name}</span><button onClick={()=>updateTrack(t.id,{muted:!t.muted})}>{t.muted?<VolumeX className="w-3 h-3 text-red-400"/>:<Volume2 className="w-3 h-3"/>}</button></div><div className="h-32 flex items-end gap-px py-2">{Array.from({length:24},(_,i)=><div key={i} className="flex-1 rounded-t" style={{height:`${15+Math.abs(Math.sin(i*1.7))*70}%`,background:t.muted?"#333":NEON,opacity:.65}}/>)}</div><Meter level={t.muted?0:.65}/><div className="grid grid-cols-2 gap-2 mt-2"><Knob label="Fader" value={t.volume} min={0} max={1.4} onChange={v=>updateTrack(t.id,{volume:v})}/><Knob label="Pan" value={t.pan} min={-1} max={1} onChange={v=>updateTrack(t.id,{pan:v})}/></div><div className="grid grid-cols-3 gap-1 mt-2"><Knob label="Low" value={t.fx.low} min={-12} max={12} suffix="dB" onChange={v=>updateTrack(t.id,{fx:{...t.fx,low:v}})}/><Knob label="Mid" value={t.fx.mid} min={-12} max={12} suffix="dB" onChange={v=>updateTrack(t.id,{fx:{...t.fx,mid:v}})}/><Knob label="High" value={t.fx.high} min={-12} max={12} suffix="dB" onChange={v=>updateTrack(t.id,{fx:{...t.fx,high:v}})}/></div><div className="grid grid-cols-3 gap-1 mt-2 text-[8px] text-muted-foreground/50"><span>COMP {t.fx.comp.toFixed(1)}</span><span>REV {t.fx.reverb.toFixed(1)}</span><span>DLY {t.fx.delay.toFixed(1)}</span></div></div>)}<div className="rounded-xl p-3 bg-white/[.02] border border-white/5"><b className="text-[10px]">MASTER</b><div className="h-40 flex items-end gap-1 py-3">{Array.from({length:20},(_,i)=><div key={i} className="flex-1 rounded" style={{height:`${20+Math.abs(Math.sin(i))*70}%`,background:NEON}}/>)}</div><Meter level={.82}/><div className="text-[9px] text-muted-foreground mt-2">Limiter • -0.8 dB ceiling</div></div></div>}
+      {view==="beat"&&<div className="p-3"><DrumMachine bpm={bpm} onHit={()=>{}}/><div className="mt-3 p-3 rounded-2xl bg-white/[.02] border border-white/5"><div className="flex items-center gap-2 text-xs"><SlidersHorizontal className="w-4 h-4" style={{color:NEON}}/>808 / sample rack</div><div className="grid grid-cols-4 gap-2 mt-3">{["808 SUB","KICK","SNARE","VINYL","RISER","CRASH","PERC","VOCAL CHOP"].map(x=><button key={x} onClick={()=>{}} className="rounded-xl p-3 bg-white/5 text-left text-[9px] hover:bg-white/10"><AudioLines className="w-4 h-4 mb-2"/><b>{x}</b><div className="text-muted-foreground/40 mt-1">drag to timeline</div></button>)}</div></div></div>}
+      {view==="keys"&&<div className="p-3"><PianoRoll notes={notes} setNotes={setNotes}/><div className="mt-3 rounded-2xl p-3 bg-white/[.02] border border-white/5 flex flex-wrap gap-2"><span className="text-[10px] text-muted-foreground/50 mr-2">SYNTH ENGINE</span>{["Analog","Pluck","808","Keys","Pad","Bell"].map(x=><button key={x} className="px-3 py-2 rounded-lg bg-white/5 text-[10px]">{x}</button>)}</div></div>}
+     </div>
+    </section>
+    <aside className="space-y-3">
+     <div className="rounded-2xl p-3" style={PANEL}><div className="flex items-center gap-2 mb-2"><Activity className="w-4 h-4" style={{color:NEON}}/><b className="text-xs">Vocal booth</b><span className="ml-auto text-[9px] text-green-400">48 kHz • stereo</span></div><button onClick={()=>recording?stopRecord():startRecord()} className="w-full rounded-xl py-3 font-bold text-xs" style={{background:recording?"rgba(239,68,68,.15)":NEON,color:recording?"#f87171":"#000"}}>{recording?<><Square className="w-4 h-4 inline mr-2"/>STOP TAKE</>:<><Mic className="w-4 h-4 inline mr-2"/>RECORD TAKE</>}</button><div className="mt-3"><Meter level={recording?.8:.18}/></div><div className="grid grid-cols-3 gap-2 mt-3"><button className="w-7 h-6 rounded bg-white/5 text-[9px]">AUTO</button><button className="w-7 h-6 rounded bg-white/5 text-[9px]">COUNT-IN</button><button className="w-7 h-6 rounded bg-white/5 text-[9px]">MONITOR</button></div></div>
+     <div className="rounded-2xl p-3" style={PANEL}><div className="flex items-center gap-2 mb-2"><Layers3 className="w-4 h-4" style={{color:NEON}}/><b className="text-xs">Lyrics / session notes</b></div><textarea ref={lyricRef} value={lyrics} onChange={e=>setLyrics(e.target.value)} rows={10} placeholder="Write bars, hooks, ad-libs, arrangement notes..." className="w-full rounded-xl bg-black/20 p-3 text-xs leading-relaxed outline-none resize-none"/><div className="flex justify-between mt-2 text-[9px] text-muted-foreground/40"><span>{lyrics.trim()?lyrics.trim().split(/\s+/).length:0} words</span><span>session notes</span></div></div>
+     <RhymeBox insert={insertLyric}/>
+     <div className="rounded-2xl p-3" style={PANEL}><div className="flex items-center gap-2 mb-2"><Wand2 className="w-4 h-4" style={{color:NEON}}/><b className="text-xs">Mix assistant</b></div><div className="space-y-1.5">{["Vocal chain: de-ess → comp → EQ","Low-end check: mono below 120 Hz","Master headroom: -6 dB target","Double-track pan: L/R 35%","Reverb ducking: vocal priority"].map(x=><div key={x} className="text-[10px] rounded-lg bg-white/5 p-2">✓ {x}</div>)}</div></div>
+    </aside>
+   </div>
+  </div>
+ </div>
 }
+
+function audioBufferToWav(buffer:AudioBuffer){const channels=buffer.numberOfChannels,rate=buffer.sampleRate,frames=buffer.length;const data=new ArrayBuffer(44+frames*channels*2);const v=new DataView(data);const ws=(o:number,s:string)=>[...s].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)));ws(0,"RIFF");v.setUint32(4,36+frames*channels*2,true);ws(8,"WAVE");ws(12,"fmt ");v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,channels,true);v.setUint32(24,rate,true);v.setUint32(28,rate*channels*2,true);v.setUint16(32,channels*2,true);v.setUint16(34,16,true);ws(36,"data");v.setUint32(40,frames*channels*2,true);let p=44;for(let i=0;i<frames;i++)for(let c=0;c<channels;c++){const x=clamp(buffer.getChannelData(c)[i],-1,1);v.setInt16(p,x<0?x*0x8000:x*0x7fff,true);p+=2;}return new Blob([data],{type:"audio/wav"})}
