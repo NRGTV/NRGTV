@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState } from "react";
+import type { Dispatch, SetStateAction, CSSProperties } from "react";
 import {
   Activity, AudioLines, Disc3, Download, Drum, FileAudio, Gauge,
   KeyboardMusic, Layers3, Mic, Pause, Play, Plus, Redo2,
   Save, SlidersHorizontal, Sparkles, Square, Undo2, Upload,
-  Volume2, VolumeX, Wand2, ZoomIn, ZoomOut
+  Volume2, VolumeX, Wand2, ZoomIn, ZoomOut, Trash2
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { fetchRhymes, fetchNearRhymes, type RhymeResult } from "@/lib/rhymes";
 import { useStudioProjects, useCreateStudioProject, useUpdateStudioProject, useDeleteStudioProject } from "@/hooks/useStudio";
 
 const NEON = "hsl(112,100%,54%)";
-const PANEL = { background: "rgba(255,255,255,.035)", border: "1px solid rgba(255,255,255,.08)" } as React.CSSProperties;
+const PANEL = { background: "rgba(255,255,255,.035)", border: "1px solid rgba(255,255,255,.08)" } as CSSProperties;
 
 type Clip = { id:string; name:string; url:string; start:number; duration:number; color:string; buffer?:AudioBuffer; source?:AudioBufferSourceNode };
 type Track = { id:string; name:string; clips:Clip[]; volume:number; pan:number; muted:boolean; solo:boolean; armed:boolean; fx:{gain:number; low:number; mid:number; high:number; comp:number; reverb:number; delay:number} };
@@ -42,14 +43,16 @@ function DrumMachine({bpm,onHit}:{bpm:number;onHit:(kind:string)=>void}){
  return <div className="rounded-2xl p-3" style={PANEL}><div className="flex items-center justify-between mb-2"><b className="text-xs flex gap-2 items-center"><Drum className="w-4 h-4" style={{color:NEON}}/>Drum machine</b><button onClick={()=>setPlaying(v=>!v)} className="text-[10px] px-2 py-1 rounded" style={{background:playing?"rgba(239,68,68,.18)":"rgba(57,255,20,.12)",color:playing?"#f87171":NEON}}>{playing?"STOP":"SEQ"}</button></div>{grid.map((row,r)=><div key={names[r]} className="flex items-center gap-1 mb-1"><span className="w-14 text-[8px] text-muted-foreground/50">{names[r]}</span>{row.map((on,i)=><button key={i} onClick={()=>setGrid(g=>g.map((rr,ri)=>ri===r?rr.map((v,ii)=>ii===i?!v:v):rr))} className="w-4 h-5 rounded-[3px]" style={{background:on?(i===step?NEON:"rgba(57,255,20,.35)"):(i===step?"rgba(255,255,255,.13)":"rgba(255,255,255,.035)")}}/>)}</div>)}</div>
 }
 
-function PianoRoll({notes,setNotes}:{notes:Note[];setNotes:React.Dispatch<React.SetStateAction<Note[]>>}){
+function PianoRoll({notes,setNotes}:{notes:Note[];setNotes:Dispatch<SetStateAction<Note[]>>}){
  const pitches=Array.from({length:12},(_,i)=>72-i); const cols=32;
  return <div className="rounded-2xl p-3" style={PANEL}><div className="flex items-center justify-between mb-2"><b className="text-xs flex gap-2 items-center"><KeyboardMusic className="w-4 h-4" style={{color:NEON}}/>Piano roll</b><span className="text-[9px] text-muted-foreground/40">click cells • 32 steps</span></div><div className="overflow-auto"><div className="min-w-[760px]">{pitches.map(p=><div key={p} className="flex h-5">{Array.from({length:cols},(_,s)=>{const n=notes.find(x=>x.pitch===p&&x.step===s);return <button key={s} onClick={()=>setNotes(ns=>n?ns.filter(x=>x.id!==n.id):[...ns,{id:Date.now()+s,pitch:p,step:s,velocity:.9,length:1}])} className="flex-1 border-r border-b border-white/5" style={{background:n?NEON:(p%12===1||p%12===3||p%12===6||p%12===8||p%12===10?"rgba(0,0,0,.35)":"rgba(255,255,255,.025)")}}/>})}</div>)}</div></div></div>
 }
 
 export default function Studio(){
- const {user,loading:authLoading}=useAuth(); const {data:projects}=useStudioProjects(); const createProject=useCreateStudioProject(); const updateProject=useUpdateStudioProject(); const deleteProject=useDeleteStudioProject();
- const [activeId,setActiveId]=useState<string|null>(null); const active=projects?.find(p=>p.id===activeId)||projects?.[0]||null; const audio=useAudioEngine();
+ const {user,loading:authLoading}=useAuth(); const {data:remoteProjects,error:projectsError,isLoading:projectsLoading}=useStudioProjects(); const createProject=useCreateStudioProject(); const updateProject=useUpdateStudioProject(); const deleteProject=useDeleteStudioProject();
+ const [localProject,setLocalProject]=useState({id:"local-studio",title:"Untitled Session",bpm:96,lyrics:"",created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
+ const projects=remoteProjects?.length ? remoteProjects : [localProject];
+ const [activeId,setActiveId]=useState<string|null>(null); const active=projects.find(p=>p.id===activeId)||projects[0]||null; const audio=useAudioEngine();
  const [bpm,setBpm]=useState(96),[playing,setPlaying]=useState(false),[recording,setRecording]=useState(false),[loop,setLoop]=useState(true),[zoom,setZoom]=useState(1),[snap,setSnap]=useState(true),[view,setView]=useState<"arrange"|"mix"|"beat"|"keys">("arrange");
  const [lyrics,setLyrics]=useState(""); const [tracks,setTracks]=useState<Track[]>([{id:uid(),name:"VOCAL 01",clips:[],volume:1,pan:0,muted:false,solo:false,armed:true,fx:{gain:0,low:0,mid:0,high:0,comp:0,reverb:0,delay:0}}]);
  const [notes,setNotes]=useState<Note[]>([]); const [position,setPosition]=useState(0); const [history,setHistory]=useState<Track[][]>([]); const [future,setFuture]=useState<Track[][]>([]); const fileRef=useRef<HTMLInputElement>(null); const recorder=useRef<MediaRecorder|null>(null); const chunks=useRef<Blob[]>([]); const lyricRef=useRef<HTMLTextAreaElement>(null);
@@ -63,9 +66,16 @@ export default function Studio(){
  const exportMix=async()=>{const clips=tracks.flatMap(t=>t.clips.map(c=>({...c,track:t}))).filter(x=>x.buffer&&!x.track.muted);if(!clips.length)return;const len=Math.ceil(Math.max(...clips.map(x=>x.start+x.duration))*44100)+44100;const off=new OfflineAudioContext(2,len,44100);const master=off.createGain();master.gain.value=.95;master.connect(off.destination);clips.forEach(x=>{const s=off.createBufferSource(),g=off.createGain(),p=off.createStereoPanner();s.buffer=x.buffer!;g.gain.value=x.track.volume;p.pan.value=x.track.pan;s.connect(g).connect(p).connect(master);s.start(x.start)});const rendered=await off.startRendering();const wav=audioBufferToWav(rendered);const a=document.createElement("a");a.href=URL.createObjectURL(wav);a.download=`${active?.title||"NRGTV-project"}-mix.wav`;a.click()};
  const addTrack=()=>pushHistory([...tracks,{id:uid(),name:`AUDIO ${tracks.length+1}`,clips:[],volume:1,pan:0,muted:false,solo:false,armed:false,fx:{gain:0,low:0,mid:0,high:0,comp:0,reverb:0,delay:0}}]);
  const updateTrack=(id:string,patch:Partial<Track>)=>setTracks(ts=>ts.map(t=>t.id===id?{...t,...patch}:t));
- const save=()=>{if(active)updateProject.mutate({id:active.id,bpm,lyrics})};
+ const save=()=>{
+   if(!active)return;
+   if(active.id==="local-studio"){
+     setLocalProject(p=>({...p,bpm,lyrics,updated_at:new Date().toISOString()}));
+     return;
+   }
+   updateProject.mutate({id:active.id,bpm,lyrics});
+ };
  const insertLyric=(word:string)=>{const el=lyricRef.current;if(!el)return setLyrics(v=>v+word+" ");const a=el.selectionStart,b=el.selectionEnd;const n=lyrics.slice(0,a)+word+lyrics.slice(b);setLyrics(n);requestAnimationFrame(()=>{el.focus();el.selectionStart=el.selectionEnd=a+word.length})};
- if(authLoading)return <div className="min-h-screen bg-background"/>; if(!user)return <div className="min-h-screen bg-background flex items-center justify-center text-sm text-muted-foreground">Sign in to unlock the studio.</div>;
+ if(authLoading)return <div className="min-h-screen bg-[#080909] text-foreground flex items-center justify-center"><div className="text-center"><div className="text-lg font-black">NRG<span style={{color:NEON}}>TV</span> STUDIO</div><div className="mt-2 text-xs text-muted-foreground">Loading studio…</div></div></div>; if(!user)return <div className="min-h-screen bg-[#080909] text-foreground flex items-center justify-center"><div className="rounded-2xl border border-white/10 bg-white/[.03] p-8 text-center"><div className="text-lg font-black">NRG<span style={{color:NEON}}>TV</span> STUDIO</div><div className="mt-2 text-sm text-muted-foreground">Sign in to unlock cloud projects.</div></div></div>;
  return <div className="min-h-screen bg-[#080909] text-foreground pt-14 pb-12">
   <input ref={fileRef} type="file" accept="audio/*" multiple className="hidden" onChange={e=>Array.from(e.target.files||[]).forEach(importAudio)}/>
   <div className="sticky top-14 z-30 border-b border-white/10 bg-[#0b0c0c]/95 backdrop-blur-xl">
@@ -79,7 +89,14 @@ export default function Studio(){
    </div>
   </div>
   <div className="max-w-[1600px] mx-auto px-3 py-3">
-   <div className="flex items-center gap-2 mb-3 overflow-auto">{projects?.map(p=><button key={p.id} onClick={()=>setActiveId(p.id)} className="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap" style={{background:p.id===active?.id?"rgba(57,255,20,.12)":"rgba(255,255,255,.04)",color:p.id===active?.id?NEON:"#999"}}>{p.title}</button>)}<button onClick={async()=>setActiveId((await createProject.mutateAsync("Untitled")).id)} className="px-3 py-1.5 rounded-lg bg-white/5 text-xs flex gap-1"><Plus className="w-3 h-3"/>Project</button>{active&&<button onClick={()=>{if(confirm("Delete this studio project?"))deleteProject.mutate(active.id)}} className="px-2 py-1.5 rounded-lg bg-white/5 text-xs text-red-400" title="Delete project"><Trash2 className="w-3.5 h-3.5"/></button>}</div>
+   <div className="flex items-center gap-2 mb-3 overflow-auto">{projects?.map(p=><button key={p.id} onClick={()=>setActiveId(p.id)} className="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap" style={{background:p.id===active?.id?"rgba(57,255,20,.12)":"rgba(255,255,255,.04)",color:p.id===active?.id?NEON:"#999"}}>{p.title}</button>)}<button onClick={async()=>{
+       try { setActiveId((await createProject.mutateAsync("Untitled")).id); }
+       catch {
+         const id=`local-${Date.now()}`;
+         setLocalProject({id,title:"Untitled Session",bpm,lyrics,created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
+         setActiveId(id);
+       }
+     }} className="px-3 py-1.5 rounded-lg bg-white/5 text-xs flex gap-1"><Plus className="w-3 h-3"/>Project</button>{active&&<button onClick={()=>{if(confirm("Delete this studio project?"))deleteProject.mutate(active.id)}} className="px-2 py-1.5 rounded-lg bg-white/5 text-xs text-red-400" title="Delete project"><Trash2 className="w-3.5 h-3.5"/></button>}</div>
    <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-3 max-[1050px]:grid-cols-1">
     <section className="min-w-0">
      <div className="rounded-2xl overflow-hidden" style={PANEL}>
