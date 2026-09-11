@@ -8,6 +8,7 @@
  *  + Wrap everything in <AuthProvider>
  */
 
+import Studio from "@/pages/Studio";
 import { useEffect, useState } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -55,6 +56,7 @@ function Router() {
         <Route path="/u/:username" component={Profile} />
         <Route path="/forum" component={Forum} />
         <Route path="/forum/:id" component={ForumThread} />
+        <Route path="/studio" component={Studio} />
         <Route component={NotFound} />
       </Switch>
     </>
