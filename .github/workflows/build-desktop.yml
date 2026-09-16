@@ -1,4 +1,4 @@
-name: Build Desktop & Android
+name: Build Desktop
 
 on:
   push:
@@ -303,198 +303,11 @@ jobs:
           if-no-files-found: warn
 
   # ─────────────────────────────────────────────────────────
-  # 3. Android APK
-  # ─────────────────────────────────────────────────────────
-  build-apk:
-    name: Android APK
-    needs: build-web
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Download web dist
-        uses: actions/download-artifact@v4
-        with:
-          name: web-dist
-          path: capacitor-app/www
-
-      - name: Create Capacitor project
-        run: |
-          mkdir -p capacitor-app
-          cat > capacitor-app/package.json << 'EOF'
-          {
-            "name": "nrg-tv-android",
-            "version": "1.0.${{ github.run_number }}",
-            "dependencies": {
-              "@capacitor/android": "^6.0.0",
-              "@capacitor/cli": "^6.0.0",
-              "@capacitor/core": "^6.0.0"
-            }
-          }
-          EOF
-
-          cat > capacitor-app/capacitor.config.json << 'EOF'
-          {
-            "appId": "space.nrgtv.nrgtv",
-            "appName": "NRGTV",
-            "webDir": "www"
-          }
-          EOF
-
-      - name: Install Capacitor
-        working-directory: capacitor-app
-        run: npm install
-
-      - name: Setup Android
-        working-directory: capacitor-app
-        run: |
-          npx cap add android
-          npx cap sync android
-
-      - name: Harden Android WebView against embed redirects/popups
-        working-directory: capacitor-app
-        run: |
-          python3 - << 'PY'
-          import pathlib
-
-          # Extends Capacitor's own BridgeWebViewClient (rather than replacing
-          # it outright) so the JS-bridge URL handling Capacitor relies on
-          # still works — this only adds a check on top of it. Mirrors the
-          # Electron build's protection: block anything trying to navigate
-          # the main frame away from the app's own bundled origin (that's
-          # what an ad redirect hijacking the whole app looks like), and
-          # block every popup/new-window attempt outright. Deliberately does
-          # NOT allowlist by host — that would need updating every time a
-          # source is added/removed, and app-shell hijacks/popups are the
-          # same regardless of which of the six sources triggers them.
-          path = pathlib.Path("android/app/src/main/java/space/nrgtv/nrgtv/MainActivity.java")
-          path.write_text('''package space.nrgtv.nrgtv;
-
-          import android.os.Bundle;
-          import android.os.Message;
-          import android.util.Log;
-          import android.webkit.WebChromeClient;
-          import android.webkit.WebResourceRequest;
-          import android.webkit.WebView;
-          import com.getcapacitor.BridgeActivity;
-          import com.getcapacitor.BridgeWebViewClient;
-
-          public class MainActivity extends BridgeActivity {
-              // Origin Capacitor serves the bundled web app from (default
-              // androidScheme is "https", served from localhost).
-              private static final String APP_ORIGIN = "https://localhost";
-
-              @Override
-              public void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-
-                  WebView webView = this.bridge.getWebView();
-
-                  webView.setWebViewClient(new BridgeWebViewClient(this.bridge) {
-                      @Override
-                      public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                          if (request.isForMainFrame()) {
-                              String url = request.getUrl().toString();
-                              if (!url.startsWith(APP_ORIGIN)) {
-                                  Log.w("NRGTV", "Blocked main-frame redirect: " + url);
-                                  return true; // block — do not navigate the whole app away
-                              }
-                          }
-                          // Anything else (including the video iframe loading/
-                          // navigating within itself) falls through to Capacitor's
-                          // own handling.
-                          return super.shouldOverrideUrlLoading(view, request);
-                      }
-                  });
-
-                  webView.setWebChromeClient(new WebChromeClient() {
-                      @Override
-                      public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, Message resultMsg) {
-                          Log.w("NRGTV", "Blocked popup window request");
-                          return false;
-                      }
-                  });
-              }
-          }
-          ''')
-          print("Patched MainActivity.java")
-          PY
-
-      - name: Generate Android app icon
-        working-directory: capacitor-app
-        run: mkdir -p assets && cp ../build-resources/icon-1024.png assets/icon.png && npm install --save-dev @capacitor/assets && npx capacitor-assets generate --android
-
-      - name: Decode keystore & set signing env
-        working-directory: capacitor-app
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        run: |
-          mkdir -p android/app
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
-          echo "ANDROID_KEYSTORE_PATH=$(pwd)/android/app/release.keystore" >> "$GITHUB_ENV"
-          echo "ANDROID_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> "$GITHUB_ENV"
-          echo "ANDROID_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> "$GITHUB_ENV"
-          echo "ANDROID_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> "$GITHUB_ENV"
-
-      - name: Configure release signing
-        working-directory: capacitor-app/android/app
-        run: |
-          python3 - << 'PY'
-          path = "build.gradle"
-          with open(path) as f:
-              content = f.read()
-
-          signing_block = """
-              signingConfigs {
-                  release {
-                      storeFile file(System.getenv("ANDROID_KEYSTORE_PATH"))
-                      storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
-                      keyAlias System.getenv("ANDROID_KEY_ALIAS")
-                      keyPassword System.getenv("ANDROID_KEY_PASSWORD")
-                  }
-              }
-          """
-          content = content.replace("android {", "android {\n" + signing_block, 1)
-          content = content.replace(
-              "release {\n            minifyEnabled false",
-              "release {\n            signingConfig signingConfigs.release\n            minifyEnabled false",
-          )
-
-          with open(path, "w") as f:
-              f.write(content)
-          PY
-
-      - name: Build APK
-        working-directory: capacitor-app/android
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleRelease
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-apk
-          path: capacitor-app/android/app/build/outputs/apk/release/app-release.apk
-
-  # ─────────────────────────────────────────────────────────
-  # 4. Release
+  # 3. Release
   # ─────────────────────────────────────────────────────────
   release:
     name: Publish Release
-    needs: [build-electron, build-apk]
+    needs: build-electron
     runs-on: ubuntu-latest
 
     steps:
@@ -504,12 +317,6 @@ jobs:
           path: release-assets
           pattern: 'electron-*'
           merge-multiple: true
-
-      - name: Download APK
-        uses: actions/download-artifact@v4
-        with:
-          name: android-apk
-          path: release-assets
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
