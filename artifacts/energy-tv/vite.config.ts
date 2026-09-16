@@ -63,16 +63,19 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] },
             },
           },
-          {
-            urlPattern: /^https:\/\/api\.themoviedb\.org\/.*/i,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "tmdb-api",
-              expiration: { maxEntries: 100, maxAgeSeconds: 10 * 60 },
-              cacheableResponse: { statuses: [0, 200] },
-              networkTimeoutSeconds: 8,
-            },
-          },
+          // Deliberately NOT routing api.themoviedb.org through the service
+          // worker. Firefox has a known flaky pattern where a SW intercepting
+          // a cross-origin fetch occasionally fails to relay the response
+          // back through respondWith(); Workbox then has no cached fallback
+          // (nothing's been cached yet) and throws its own "no-response"
+          // error, which Firefox confusingly reports as a CORS failure. This
+          // manifested as TMDB movie data vanishing entirely, more easily
+          // triggered under the extra concurrent requests a signed-in boot
+          // makes (session check, profile fetch). react-query already caches
+          // this JSON in memory for 5 minutes (see STALE in useMedia.ts), so
+          // SW-level caching wasn't adding much — letting these requests hit
+          // the network directly, unintercepted, is both simpler and more
+          // reliable.
         ],
       },
     }),
