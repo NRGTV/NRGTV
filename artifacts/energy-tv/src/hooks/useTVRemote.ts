@@ -21,7 +21,19 @@ const KEY_TO_ACTION: Record<string, string> = {
 
 export default function useTVRemote() {
   useEffect(() => {
+    function isTypingTarget(target: EventTarget | null): boolean {
+      if (!(target instanceof HTMLElement)) return false;
+      const tag = target.tagName;
+      return tag === "INPUT" || tag === "TEXTAREA" || target.isContentEditable;
+    }
+
     function onKey(e: KeyboardEvent) {
+      // Don't hijack Space/Backspace/Enter/arrows while someone is actually
+      // typing in a text field, a search box, the lyrics editor, etc. —
+      // remote-control navigation only makes sense when nothing is focused
+      // for text entry.
+      if (isTypingTarget(e.target)) return;
+
       const k = e.key;
       const action = KEY_TO_ACTION[k];
       if (action) {
