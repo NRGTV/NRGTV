@@ -23,7 +23,7 @@ const BLOCKED_DOMAINS = [
 ];
 
 const ALLOWED_PLAYER_DOMAINS = [
-  'vidlink.pro',           // ← ONLY allowed player
+  '111movies.net',
   'tmdb.org',
   'themoviedb.org',
   'image.tmdb.org',
