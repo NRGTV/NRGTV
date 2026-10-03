@@ -9,6 +9,12 @@ interface GameEntry {
 }
 
 const windowsGames: GameEntry[] = [
+   {
+    id: "grandtheftaus",
+    title: "Grand Theft Aus",
+    blurb: "Free-to-play GTA Clone Set In Melbourne, Australia",
+    url: "https://f1ftycal.itch.io/grand-theft-aus",
+  }, 
   {
     id: "valorant",
     title: "VALORANT",
