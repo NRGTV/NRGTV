@@ -18,7 +18,7 @@ interface Source {
   build: (opts: { id: number; isTV: boolean; season: number; episode: number }) => string;
 }
 
-// Only 111movies.com — all the free embed aggregators (this one included)
+// Only 111movies.net — all the free embed aggregators (this one included)
 // gate playback behind a window.open() popup succeeding, so that's granted
 // via the iframe's sandbox below regardless of source. The others
 // (vidlink.pro, vidsrc.cc, vidsrc.to, embed.su, moviesapi) were dropped
@@ -29,8 +29,8 @@ const SOURCES: Source[] = [
     label: "111Movies",
     build: ({ id, isTV, season, episode }) =>
       isTV
-        ? `https://111movies.com/tv/${id}/${season}/${episode}`
-        : `https://111movies.com/movie/${id}`,
+        ? `https://111movies.net/tv/${id}/${season}/${episode}`
+        : `https://111movies.net/movie/${id}`,
   },
 ];
 
